@@ -37,6 +37,7 @@ public:
     void    SetLogLevel(const ENUM_LOG_LEVELS log_level)   { m_log_level=log_level; }
     void    SetDeviation(const int deviation) { m_deviation = deviation; }
     bool    Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
+    bool    Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
 };
 
 
@@ -57,6 +58,27 @@ bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,c
     }
     if (m_log_level == LOG_LEVEL_ALL) {
         Print("Успешная покупка по рынку. Код ответа: ", result);
+    }
+    return true;
+}
+
+bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
+{
+    if (price == 0.0) {
+        price = Bid;
+    }
+    if (m_log_level == LOG_LEVEL_ALL) {
+        Print("Новый запрос на продажу по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price+sl*Point, ", профит: ", price-tp*Point);
+    }
+    int result = OrderSend(symbol, OP_SELL, volume, price, m_deviation, price+sl*Point, price-tp*Point, comment, m_magic, 0, Red);
+    if (result < 0) {
+        if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
+            Print("Ошибка продажи по рынку. Код ошибки: ", GetLastError());
+        }
+        return false;
+    }
+    if (m_log_level == LOG_LEVEL_ALL) {
+        Print("Успешная продажа по рынку. Код ответа: ", result);
     }
     return true;
 }
