@@ -27,8 +27,8 @@ class CTrade : public CObject
 {
 private:
     ENUM_LOG_LEVELS m_log_level;
-    int           m_deviation;       // deviation default
-    int           m_magic;
+    int             m_deviation;       // deviation default
+    int             m_magic;
     
 public:
             CTrade();
@@ -46,10 +46,16 @@ bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,c
     if (price == 0.0) {
         price = Ask;
     }
+  
+    double stopLoss = NormalizeDouble(price-sl*Point,Digits);
+    double takeProfit = NormalizeDouble(price+tp*Point,Digits);
+
     if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Новый запрос на покупку по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price-sl*Point, ", профит: ", price+tp*Point);
+        Print("Новый запрос на покупку по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", stopLoss, ", профит: ", takeProfit);
     }
-    int result = OrderSend(symbol, OP_BUY, volume, price, m_deviation, price-sl*Point, price+tp*Point, comment, m_magic, 0, Blue);
+
+    int result = OrderSend(symbol, OP_BUY, volume, price, m_deviation, stopLoss, takeProfit, comment, m_magic, 0, Blue);
+    
     if (result < 0) {
         if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
             Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
@@ -67,10 +73,14 @@ bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,
     if (price == 0.0) {
         price = Bid;
     }
+
+    double stopLoss = NormalizeDouble(price+sl*Point,Digits);
+    double takeProfit = NormalizeDouble(price-tp*Point,Digits);
+
     if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Новый запрос на продажу по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price+sl*Point, ", профит: ", price-tp*Point);
+        Print("Новый запрос на продажу по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", stopLoss, ", профит: ", takeProfit);
     }
-    int result = OrderSend(symbol, OP_SELL, volume, price, m_deviation, price+sl*Point, price-tp*Point, comment, m_magic, 0, Red);
+    int result = OrderSend(symbol, OP_SELL, volume, price, m_deviation, stopLoss, takeProfit, comment, m_magic, 0, Red);
     if (result < 0) {
         if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
             Print("Ошибка продажи по рынку. Код ошибки: ", GetLastError());

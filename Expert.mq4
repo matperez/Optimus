@@ -41,6 +41,7 @@ int OnInit()
     pTrade.SetDeviation(Deviation);
     
     pTrade.Buy(Lot, _Symbol, 0.0, 2*TakeProfit, TakeProfit);
+    pTrade.Sell(Lot, _Symbol, 0.0, TakeProfit*2, TakeProfit);
     
     return(INIT_SUCCEEDED);
 }
