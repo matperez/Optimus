@@ -17,6 +17,13 @@ input   int     Deviation = 10;
 CTrade *pTrade;
 
 /*
+TODO:
+    1. Класс для хранение данных по ордерам
+    2. Механизм хранения и для списка активных ордеров
+    3. Метод для инициализации списка активных ордеров из рынка до начала работы
+    
+
+
 OnInit:
     double CurrentPrice = GetCurrentPrice()
     BuyMarket(TP: TakeProfit, SL: CurrentPrice-TakeProfit*2);
