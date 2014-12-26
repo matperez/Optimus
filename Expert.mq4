@@ -25,13 +25,14 @@ CSymbolInfo *pSymbol;
 //+------------------------------------------------------------------+
 int OnInit()
 {
+    MqlTradeResult result;
     pSymbol = new CSymbolInfo();
     pSymbol.Name(_Symbol);
 
     pTrade = new CTrade();
     pTrade.SetLogLevel(LOG_LEVEL_ALL);
     pTrade.SetDeviation(Deviation);
-
+    
     Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin(), " Поинт: ", pSymbol.Point());
     
     COrderInfo order;

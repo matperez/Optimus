@@ -68,18 +68,6 @@ struct MqlTradeResult
     uint            request_id;       // Идентификатор запроса, устанавливается терминалом при отправке 
 };
 
-struct MqlTradeCheckResult
-{
-    uint         retcode;             // Код ответа
-    double       balance;             // Баланс после совершения сделки
-    double       equity;              // Эквити после совершения сделки
-    double       profit;              // Плавающая прибыль
-    double       margin;              // Маржевые требования
-    double       margin_free;         // Свободная маржа
-    double       margin_level;        // Уровень маржи
-    string       comment;             // Комментарий к коду ответа (описание ошибки)
-};
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -92,7 +80,6 @@ private:
     int                 m_magic;
     MqlTradeRequest     m_request;         // request data
     MqlTradeResult      m_result;          // result data
-    MqlTradeCheckResult m_check_result;  // result check data
     color               GetColor(const ENUM_ORDER_TYPE order_type);
     void                ClearStructures(void);
     
