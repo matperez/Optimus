@@ -16,30 +16,19 @@ protected:
    MqlTick           m_tick;               // structure of tick;
    double            m_point;              // symbol point
    double            m_tick_value;         // symbol tick value
-   double            m_tick_value_profit;  // symbol tick value profit
-   double            m_tick_value_loss;    // symbol tick value loss
    double            m_tick_size;          // symbol tick size
    double            m_contract_size;      // symbol contract size
    double            m_lots_min;           // symbol lots min
    double            m_lots_max;           // symbol lots max
    double            m_lots_step;          // symbol lots step
-   double            m_lots_limit;         // symbol lots limit
    double            m_swap_long;          // symbol swap long
    double            m_swap_short;         // symbol swap short
    int               m_digits;             // symbol digits
-   int               m_order_mode;         // symbol valid orders
    ENUM_SYMBOL_TRADE_EXECUTION m_trade_execution;    // symbol trade execution
    ENUM_SYMBOL_TRADE_MODE m_trade_mode;         // symbol trade mode
    ENUM_DAY_OF_WEEK  m_swap3;              // symbol swap3
    double            m_margin_initial;     // symbol margin initial
    double            m_margin_maintenance; // symbol margin maintenance
-   double            m_margin_long;        // symbol margin long position
-   double            m_margin_short;       // symbol margin short position
-   double            m_margin_limit;       // symbol margin limit order
-   double            m_margin_stop;        // symbol margin stop order
-   double            m_margin_stoplimit;   // symbol margin stoplimit order
-   int               m_trade_time_flags;   // symbol trade time flags
-   int               m_trade_fill_flags;   // symbol trade fill flags
 
 public:
                      CSymbolInfo(void);
@@ -78,8 +67,6 @@ public:
    double            Last(void) const { return(m_tick.last); }
    double            LastHigh(void) const;
    double            LastLow(void) const;
-   //--- fast access methods to the mix symbol propertyes
-   int               OrderMode(void) const { return(m_order_mode); }
    //--- terms of trade
    string            TradeCalcModeDescription(void) const;
    ENUM_SYMBOL_TRADE_MODE TradeMode(void) const { return(m_trade_mode); }
@@ -97,27 +84,16 @@ public:
    //--- margin parameters
    double            MarginInitial(void)                const { return(m_margin_initial);     }
    double            MarginMaintenance(void)            const { return(m_margin_maintenance); }
-   double            MarginLong(void)                   const { return(m_margin_long);        }
-   double            MarginShort(void)                  const { return(m_margin_short);       }
-   double            MarginLimit(void)                  const { return(m_margin_limit);       }
-   double            MarginStop(void)                   const { return(m_margin_stop);        }
-   double            MarginStopLimit(void)              const { return(m_margin_stoplimit);   }
-   //--- trade flags parameters
-   int               TradeTimeFlags(void)               const { return(m_trade_time_flags);   }
-   int               TradeFillFlags(void)               const { return(m_trade_fill_flags);   }
    //--- tick parameters
    int               Digits(void)                       const { return(m_digits);             }
    double            Point(void)                        const { return(m_point);              }
    double            TickValue(void)                    const { return(m_tick_value);         }
-   double            TickValueProfit(void)              const { return(m_tick_value_profit);  }
-   double            TickValueLoss(void)                const { return(m_tick_value_loss);    }
    double            TickSize(void)                     const { return(m_tick_size);          }
    //--- lots parameters
    double            ContractSize(void)                 const { return(m_contract_size);      }
    double            LotsMin(void)                      const { return(m_lots_min);           }
    double            LotsMax(void)                      const { return(m_lots_max);           }
    double            LotsStep(void)                     const { return(m_lots_step);          }
-   double            LotsLimit(void)                    const { return(m_lots_limit);         }
    //--- swaps
    double            SwapLong(void)                     const { return(m_swap_long);          }
    double            SwapShort(void)                    const { return(m_swap_short);         }
@@ -156,8 +132,6 @@ public:
 CSymbolInfo::CSymbolInfo(void) : m_name(""),
                                  m_point(0.0),
                                  m_tick_value(0.0),
-                                 m_tick_value_profit(0.0),
-                                 m_tick_value_loss(0.0),
                                  m_tick_size(0.0),
                                  m_contract_size(0.0),
                                  m_lots_min(0.0),
@@ -166,19 +140,11 @@ CSymbolInfo::CSymbolInfo(void) : m_name(""),
                                  m_swap_long(0.0),
                                  m_swap_short(0.0),
                                  m_digits(0),
-                                 m_order_mode(0),
                                  m_trade_execution(0),
                                  m_trade_mode(0),
                                  m_swap3(0),
                                  m_margin_initial(0.0),
-                                 m_margin_maintenance(0.0),
-                                 m_margin_long(0.0),
-                                 m_margin_short(0.0),
-                                 m_margin_limit(0.0),
-                                 m_margin_stop(0.0),
-                                 m_margin_stoplimit(0.0),
-                                 m_trade_time_flags(0),
-                                 m_trade_fill_flags(0)
+                                 m_margin_maintenance(0.0)
   {
   }
 //+------------------------------------------------------------------+
@@ -211,64 +177,69 @@ bool CSymbolInfo::Refresh(void)
    long tmp=0;
 //---
    if(!SymbolInfoDouble(m_name,SYMBOL_POINT,m_point))
+   {
       return(false);
+   }
    if(!SymbolInfoDouble(m_name,SYMBOL_TRADE_TICK_VALUE,m_tick_value))
+   {
       return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_TRADE_TICK_VALUE_PROFIT,m_tick_value_profit))
-      return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_TRADE_TICK_VALUE_LOSS,m_tick_value_loss))
-      return(false);
+   }
    if(!SymbolInfoDouble(m_name,SYMBOL_TRADE_TICK_SIZE,m_tick_size))
-      return(false);
+    {
+        return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_TRADE_CONTRACT_SIZE,m_contract_size))
+    {
       return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_VOLUME_MIN,m_lots_min))
+    {
       return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_VOLUME_MAX,m_lots_max))
+    {
       return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_VOLUME_STEP,m_lots_step))
+    {
       return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_VOLUME_LIMIT,m_lots_limit))
-      return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_SWAP_LONG,m_swap_long))
+    {
       return(false);
+    }
    if(!SymbolInfoDouble(m_name,SYMBOL_SWAP_SHORT,m_swap_short))
+    {
       return(false);
+    }
    if(!SymbolInfoInteger(m_name,SYMBOL_DIGITS,tmp))
-      return(false);
+    {
+          return(false);
+    }
    m_digits=(int)tmp;
-   if(!SymbolInfoInteger(m_name,SYMBOL_ORDER_MODE,tmp))
-      return(false);
-   m_order_mode=(int)tmp;
    if(!SymbolInfoInteger(m_name,SYMBOL_TRADE_EXEMODE,tmp))
+   {
       return(false);
+   }
    m_trade_execution=(ENUM_SYMBOL_TRADE_EXECUTION)tmp;
    if(!SymbolInfoInteger(m_name,SYMBOL_TRADE_CALC_MODE,tmp))
+   {
       return(false);
+   }
    m_trade_mode=(ENUM_SYMBOL_TRADE_MODE)tmp;
    if(!SymbolInfoInteger(m_name,SYMBOL_SWAP_MODE,tmp))
+   {
       return(false);
+   }
    m_swap3=(ENUM_DAY_OF_WEEK)tmp;
    if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_INITIAL,m_margin_initial))
+   {
       return(false);
+   }
    if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_MAINTENANCE,m_margin_maintenance))
+   {
       return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_LONG,m_margin_long))
-      return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_SHORT,m_margin_short))
-      return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_LIMIT,m_margin_limit))
-      return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_STOP,m_margin_stop))
-      return(false);
-   if(!SymbolInfoDouble(m_name,SYMBOL_MARGIN_STOPLIMIT,m_margin_stoplimit))
-      return(false);
-   if(!SymbolInfoInteger(m_name,SYMBOL_EXPIRATION_MODE,tmp))
-      return(false);
-   m_trade_time_flags=(int)tmp;
-   if(!SymbolInfoInteger(m_name,SYMBOL_FILLING_MODE,tmp))
-      return(false);
-   m_trade_fill_flags=(int)tmp;
+   }
 //--- succeed
    return(true);
   }

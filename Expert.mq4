@@ -9,12 +9,14 @@
 #property strict
 
 #include "Trade.mqh"
+#include "SymbolInfo.mqh"
 
 input   int     TakeProfit = 50;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 
 CTrade *pTrade;
+CSymbolInfo *pSymbol;
 
 /*
 TODO:
@@ -43,11 +45,14 @@ OnTick:
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    pTrade = new CTrade();
-    pTrade.SetLogLevel(LOG_LEVEL_ALL);
-    pTrade.SetDeviation(Deviation);
+    pSymbol = new CSymbolInfo();
+    pSymbol.Name(_Symbol);
+    Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin());
+//    pTrade = new CTrade();
+//    pTrade.SetLogLevel(LOG_LEVEL_ALL);
+//    pTrade.SetDeviation(Deviation);
     
-    pTrade.Buy(Lot, _Symbol, 0.0, 2*TakeProfit, TakeProfit);
+//    pTrade.Buy(Lot, _Symbol, 0.0, 2*TakeProfit, TakeProfit);
     
     return(INIT_SUCCEEDED);
 }
