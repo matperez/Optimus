@@ -30,6 +30,7 @@ public:
                      COrderInfo(void);
                     ~COrderInfo(void);
    bool              IsPending(void) { return !(m_type == OP_BUY || m_type == OP_SELL); }
+   double            GetVolume(void) { return m_volume_curr; }
    //--- methods of access to protected data
    ulong             Ticket(void) const { return(m_ticket); }
    //--- fast access methods to the integer order propertyes
