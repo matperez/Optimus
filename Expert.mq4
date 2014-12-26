@@ -13,6 +13,7 @@
 #include "OrderInfo.mqh"
 
 input   int     TakeProfit = 50;
+input   int     StopLoss = 100;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 
@@ -91,6 +92,13 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
-   
+     int total, ticket;
+     
+     total=OrdersTotal();
+     if(total==0)
+     {
+        ticket=OrderSend(Symbol(),OP_SELLSTOP,Lot,Bid-TakeProfit*Point,Deviation,Bid+TakeProfit*Point, Bid-StopLoss*Point,"Optimus",141183,0,Green);
+        ticket=OrderSend(Symbol(),OP_BUYSTOP,Lot,Ask+TakeProfit*Point,Deviation,Ask-TakeProfit*Point, Ask+StopLoss*Point,"Optimus",141183,0,Blue);
+     }   
   }
 //+------------------------------------------------------------------+
