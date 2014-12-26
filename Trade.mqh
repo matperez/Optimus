@@ -89,10 +89,19 @@ public:
     void    SetMagicNumber(const int magic) { m_magic=magic; }
     void    SetLogLevel(const ENUM_LOG_LEVELS log_level)   { m_log_level=log_level; }
     void    SetDeviation(const int deviation) { m_deviation = deviation; }
+    int     GetCode() { return m_result.code; }
+    string  GetMessage() { return ErrorDescription(m_result.code); }
     bool    Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
     bool    Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
-    bool    PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
-                          const double price,const double sl,const double tp,const string comment);
+    bool    SellStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
+                                                                     const double tp=0.0, const datetime expiration=0, const string comment="");
+    bool    BuyStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
+                                                                     const double tp=0.0, const datetime expiration=0, const string comment="");
+    bool    PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume, 
+                                                                        const double price,const double sl,const double tp,const string comment);
+    bool    OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume, const double limit_price, 
+                                             const double price,const double sl,const double tp, const datetime expiration,const string comment);
+
 };
 
 //+------------------------------------------------------------------+
@@ -109,42 +118,6 @@ CTrade::CTrade() : m_magic(0),
 //+------------------------------------------------------------------+
 CTrade::~CTrade()
 {
-}
-
-//+------------------------------------------------------------------+
-//| Open position                                                    |
-//+------------------------------------------------------------------+
-bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
-                          const double price,const double sl,const double tp,const string comment)
-{
-    if(IsStopped())
-        return(false);
-    ClearStructures();
-    if(order_type!=ORDER_TYPE_BUY && order_type!=ORDER_TYPE_SELL)
-    {
-        m_result.code = ERR_INVALID_TRADE_PARAMETERS;
-        m_result.comment = ErrorDescription(m_result.code);
-        return(false);
-    }
-    m_request.symbol = symbol;
-    m_request.magic = m_magic;
-    m_request.volume = volume;
-    m_request.type = order_type;
-    m_request.price = price;
-    m_request.sl = sl;
-    m_request.tp = tp;
-    m_request.deviation = m_deviation;
-    m_request.comment = comment;
-    
-    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, 0, GetColor(m_request.type));
-
-    if (m_result.ticket < 0) {
-        m_result.code = GetLastError();
-        m_result.comment = ErrorDescription(m_result.code);
-        return (false);
-    }
-
-    return (true);
 }
 //+------------------------------------------------------------------+
 //| Clear structures m_request,m_result and m_check_result           |
@@ -172,7 +145,115 @@ color CTrade::GetColor(const ENUM_ORDER_TYPE order_type)
     }
     return Gray;
 }
+//+------------------------------------------------------------------+
+//| Open position                                                    |
+//+------------------------------------------------------------------+
+bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
+                          const double price,const double sl,const double tp,const string comment)
+{
+    if(IsStopped())
+        return(false);
+    ClearStructures();
+    if(order_type!=ORDER_TYPE_BUY && order_type!=ORDER_TYPE_SELL)
+    {
+        m_result.code = ERR_INVALID_TRADE_PARAMETERS;
+        return(false);
+    }
+    m_request.symbol = symbol;
+    m_request.magic = m_magic;
+    m_request.volume = volume;
+    m_request.type = order_type;
+    m_request.price = price;
+    m_request.sl = sl;
+    m_request.tp = tp;
+    m_request.deviation = m_deviation;
+    m_request.comment = comment;
+    
+    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, 0, GetColor(m_request.type));
 
+    if (m_result.ticket < 0) {
+        m_result.code = GetLastError();
+        m_result.comment = ErrorDescription(m_result.code);
+        return (false);
+    }
+
+    return (true);
+}
+//+------------------------------------------------------------------+
+//| Installation pending order                                       |
+//+------------------------------------------------------------------+
+bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,const double limit_price,
+                       const double price,const double sl,const double tp,
+                       const datetime expiration,const string comment)
+{
+    if (IsStopped()) {
+        return(false);
+    }
+    ClearStructures();
+    if(order_type==ORDER_TYPE_BUY || order_type==ORDER_TYPE_SELL) {
+        m_result.code = ERR_INVALID_TRADE_PARAMETERS;
+        m_result.comment = "Invalid order type";
+        return(false);
+    }
+//--- check order expiration
+//--- setting request
+    m_request.symbol = symbol;
+    m_request.magic = m_magic;
+    m_request.volume = volume;
+    m_request.type = order_type;
+    m_request.stoplimit = limit_price;
+    m_request.price = price;
+    m_request.sl = sl;
+    m_request.tp = tp;
+    m_request.expiration = expiration;
+//--- check expiration
+    m_request.comment = comment;
+//--- action and return the result
+
+    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, m_request.expiration, GetColor(m_request.type));
+
+    if (m_result.ticket < 0) {
+        m_result.code = GetLastError();
+        m_result.comment = ErrorDescription(m_result.code);
+        return (false);
+    }
+
+    return (true);
+}
+//+------------------------------------------------------------------+
+//| Sell by stop order                                               |
+//+------------------------------------------------------------------+
+bool CTrade::SellStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,const double tp=0.0, const datetime expiration=0, const string comment="")
+{
+    CSymbolInfo sym;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        return(false);
+    }
+    if(price==0.0) {
+        m_result.code = ERR_INVALID_PRICE;
+        return(false);
+    }
+    sym.Name((symbol==NULL)?Symbol():symbol);
+    return(OrderOpen(sym.Name(),ORDER_TYPE_SELL_STOP,volume,0.0,price,sl,tp,expiration,comment));
+}
+//+------------------------------------------------------------------+
+//| Buy by stop order                                               |
+//+------------------------------------------------------------------+
+bool CTrade::BuyStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,const double tp=0.0, const datetime expiration=0, const string comment="")
+{
+    CSymbolInfo sym;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        return(false);
+    }
+    if(price==0.0) {
+        m_result.code = ERR_INVALID_PRICE;
+        return(false);
+    }
+    sym.Name((symbol==NULL)?Symbol():symbol);
+    return(OrderOpen(sym.Name(),ORDER_TYPE_BUY_STOP,volume,0.0,price,sl,tp,expiration,comment));
+}
 //+------------------------------------------------------------------+
 //| Buy operation                                                    |
 //+------------------------------------------------------------------+
@@ -181,7 +262,6 @@ bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,c
     CSymbolInfo sym;
     if (volume<=0.0) {
         m_result.code = ERR_INVALID_TRADE_VOLUME;
-        m_result.comment = ErrorDescription(m_result.code);
         return(false);
     }
     sym.Name((symbol==NULL)?Symbol():symbol);
@@ -199,7 +279,6 @@ bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,
     CSymbolInfo sym;
     if (volume<=0.0) {
         m_result.code = ERR_INVALID_TRADE_VOLUME;
-        m_result.comment = ErrorDescription(m_result.code);
         return(false);
     }
     sym.Name((symbol==NULL)?Symbol():symbol);

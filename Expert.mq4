@@ -11,6 +11,7 @@
 #include "Trade.mqh"
 #include "SymbolInfo.mqh"
 #include "OrderInfo.mqh"
+#include <Arrays\List.mqh>
 
 input   int     TakeProfit = 10;
 input   int     StopLoss = 100;
@@ -37,7 +38,6 @@ int OnInit()
     
     COrderInfo order;
     int total = OrdersTotal();
-    int lastPos;
     
     if (total == 0) {
         Print("Нет ордеров");
@@ -46,12 +46,9 @@ int OnInit()
         Print("Активных ордеров: ", total);
         for (int pos = 0; pos < total; pos++) {
             if (order.SelectByIndex(pos)) {
-                lastPos = pos;
                 Print("Тип ордера: ", order.OrderType());
             }
         }
-        COrderInfo lastOrder;
-        lastOrder.SelectByIndex(lastPos);
     }
     
     return(INIT_SUCCEEDED);
