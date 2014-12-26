@@ -9,47 +9,13 @@
 #property strict
 
 #include <Object.mqh>
+#include <stderror.mqh>
+#include <stdlib.mqh>
 #include "SymbolInfo.mqh"
 
 //+------------------------------------------------------------------+
 //| enumerations                                                     |
 //+------------------------------------------------------------------+
-enum ENUM_ERR_CODES
-{
-    ERR_NO_ERROR = 0, // Нет ошибки
-    ERR_NO_RESULT = 1, // Нет ошибки, но результат неизвестен
-    ERR_COMMON_ERROR = 2, // Общая ошибка
-    ERR_INVALID_TRADE_PARAMETERS = 3, // Неправильные параметры
-    ERR_SERVER_BUSY = 4, // Торговый сервер занят
-    ERR_OLD_VERSION = 5, // Старая версия клиентского терминала
-    ERR_NO_CONNECTION = 6, // Нет связи с торговым сервером
-    ERR_NOT_ENOUGH_RIGHTS = 7, // Недостаточно прав
-    ERR_TOO_FREQUENT_REQUESTS = 8, // Слишком частые запросы
-    ERR_MALFUNCTIONAL_TRADE = 9, // Недопустимая операция, нарушающая функционирование сервера
-    ERR_ACCOUNT_DISABLED = 64, // Счет заблокирован
-    ERR_INVALID_ACCOUNT = 65, // Неправильный номер счета
-    ERR_TRADE_TIMEOUT = 128, // Истек срок ожидания совершения сделки
-    ERR_INVALID_PRICE = 129, // Неправильная цена
-    ERR_INVALID_STOPS = 130, // Неправильные стопы
-    ERR_INVALID_TRADE_VOLUME = 131, // Неправильный объем
-    ERR_MARKET_CLOSED = 132, // Рынок закрыт
-    ERR_TRADE_DISABLED = 133, // Торговля запрещена
-    ERR_NOT_ENOUGH_MONEY = 134, // Недостаточно денег для совершения операции
-    ERR_PRICE_CHANGED = 135, // Цена изменилась
-    ERR_OFF_QUOTES = 136, // Нет цен
-    ERR_BROKER_BUSY = 137, // Брокер занят
-    ERR_REQUOTE = 138, // Новые цены
-    ERR_ORDER_LOCKED = 139, // Ордер заблокирован и уже обрабатывается
-    ERR_LONG_POSITIONS_ONLY_ALLOWED = 140, // Разрешена только покупка
-    ERR_TOO_MANY_REQUESTS = 141, // Слишком много запросов
-    ERR_TRADE_MODIFY_DENIED = 145, // Модификация запрещена, так как ордер слишком близок к рынку
-    ERR_TRADE_CONTEXT_BUSY = 146, // Подсистема торговли занята
-    ERR_TRADE_EXPIRATION_DENIED = 147, // Использование даты истечения ордера запрещено брокером
-    ERR_TRADE_TOO_MANY_ORDERS = 148, // Количество открытых и отложенных ордеров достигло предела, установленного брокером
-    ERR_TRADE_HEDGE_PROHIBITED = 149, // Попытка открыть противоположный ордер в случае, если хеджирование запрещено
-    ERR_TRADE_PROHIBITED_BY_FIFO = 150, // Попытка закрыть позицию по инструменту в противоречии с правилом FIFO
-}
-
 enum ENUM_LOG_LEVELS
 {
     LOG_LEVEL_NO     = 0,
@@ -90,7 +56,7 @@ struct MqlTradeRequest
 
 struct MqlTradeResult
 {
-    ENUM_ERR_CODES  retcode;          // Код результата операции
+    uint            code;             // Код результата операции
     ulong           deal;             // Тикет сделки, если она совершена
     ulong           order;            // Тикет ордера, если он выставлен
     double          volume;           // Объем сделки, подтверждённый брокером
@@ -134,7 +100,7 @@ public:
     bool    Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
     bool    Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
     bool    PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
-                        const double price,const double sl,const double tp,const string comment="");
+                          const double price,const double sl,const double tp,const string comment);
 };
 
 //+------------------------------------------------------------------+
@@ -154,14 +120,57 @@ CTrade::~CTrade()
 }
 
 //+------------------------------------------------------------------+
+//| Open position                                                    |
+//+------------------------------------------------------------------+
+bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
+                          const double price,const double sl,const double tp,const string comment)
+{
+//--- check stopped
+    if(IsStopped())
+        return(false);
+//--- clean
+   //ClearStructures();
+//--- check
+    if(order_type!=ORDER_TYPE_BUY && order_type!=ORDER_TYPE_SELL)
+    {
+        m_result.code = ERR_INVALID_TRADE_PARAMETERS;
+        m_result.comment = ErrorDescription(m_result.code);
+        return(false);
+    }
+//--- setting request
+   m_request.symbol      = symbol;
+   m_request.magic       = m_magic;
+   m_request.volume      = volume;
+   m_request.type        = order_type;
+   m_request.price       = price;
+   m_request.sl          = sl;
+   m_request.tp          = tp;
+   m_request.deviation   = m_deviation;
+//--- check order type
+//   if(!OrderTypeCheck(symbol))
+//     return(false);
+//--- check filling
+   m_request.comment=comment;
+   
+   int result = OrderSend(symbol, order_type, volume, price, m_deviation, sl, tp, comment, m_magic, 0, Blue);
+   if (result < 0) {
+       if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
+           Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
+       }
+       return false;
+   }
+   return true;
+}
+//+------------------------------------------------------------------+
 //| Buy operation                                                    |
 //+------------------------------------------------------------------+
 bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
 {
     CSymbolInfo sym;
 
-    if(volume<=0.0) {
-        m_result.retcode = ERR_INVALID_TRADE_VOLUME;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        m_result.comment = ErrorDescription(m_result.code);
         return(false);
     }
     
@@ -172,21 +181,21 @@ bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,c
         price=sym.Ask();
     }
     
-    //return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,sl,tp,comment));
-    if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Новый запрос на покупку по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price-sl*Point, ", профит: ", price+tp*Point);
-    }
-    int result = OrderSend(symbol, OP_BUY, volume, price, m_deviation, price-sl*Point, price+tp*Point, comment, m_magic, 0, Blue);
-    if (result < 0) {
-        if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
-            Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
-        }
-        return false;
-    }
-    if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Успешная покупка по рынку. Код ответа: ", result);
-    }
-    return true;
+    return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,sl,tp,comment));
+    //if (m_log_level == LOG_LEVEL_ALL) {
+    //    Print("Новый запрос на покупку по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price-sl*Point, ", профит: ", price+tp*Point);
+    //}
+    //int result = OrderSend(symbol, OP_BUY, volume, price, m_deviation, price-sl*Point, price+tp*Point, comment, m_magic, 0, Blue);
+    //if (result < 0) {
+    //    if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
+    //        Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
+    //    }
+    //    return false;
+    //}
+    //if (m_log_level == LOG_LEVEL_ALL) {
+    //    Print("Успешная покупка по рынку. Код ответа: ", result);
+    //}
+    //return true;
 }
 
 bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
