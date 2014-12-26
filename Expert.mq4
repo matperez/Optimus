@@ -10,6 +10,7 @@
 
 #include "Trade.mqh"
 #include "SymbolInfo.mqh"
+#include "OrderInfo.mqh"
 
 input   int     TakeProfit = 50;
 input   double  Lot = 0.01;
@@ -47,7 +48,27 @@ int OnInit()
 {
     pSymbol = new CSymbolInfo();
     pSymbol.Name(_Symbol);
-    Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin());
+    Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin(), " Поинт: ", pSymbol.Point());
+    
+    COrderInfo order;
+    int total = OrdersTotal();
+    
+    if (total == 0) {
+        Print("Нет ордеров");
+        
+    } else {
+        Print("Активных ордеров: ", total);
+        int lastPos;
+        for (int pos = 0; pos < total; pos++) {
+            if (order.SelectByIndex(pos)) {
+                lastPos = pos;
+                Print("Тип ордера: ", order.OrderType());
+            }
+        }
+        COrderInfo lastOrder;
+        lastOrder.SelectByIndex(lastPos);
+    }
+
 //    pTrade = new CTrade();
 //    pTrade.SetLogLevel(LOG_LEVEL_ALL);
 //    pTrade.SetDeviation(Deviation);
@@ -62,6 +83,7 @@ int OnInit()
 void OnDeinit(const int reason)
   {
 //---
+    delete pSymbol;
    
   }
 //+------------------------------------------------------------------+
