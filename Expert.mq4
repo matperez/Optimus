@@ -12,7 +12,7 @@
 #include "SymbolInfo.mqh"
 #include "OrderInfo.mqh"
 
-input   int     TakeProfit = 50;
+input   int     TakeProfit = 10;
 input   int     StopLoss = 100;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
@@ -75,8 +75,10 @@ void OnTick()
      total=OrdersTotal();
      if(total==0)
      {
+        Alert("ћинимальна€ дистанци€ установлени€ стоп ордера", MarketInfo(Symbol(),MODE_STOPLEVEL));
         ticket=OrderSend(Symbol(),OP_SELLSTOP,Lot,Bid-TakeProfit*Point,Deviation,Bid+TakeProfit*Point, Bid-StopLoss*Point,"Optimus",141183,0,Green);
         ticket=OrderSend(Symbol(),OP_BUYSTOP,Lot,Ask+TakeProfit*Point,Deviation,Ask-TakeProfit*Point, Ask+StopLoss*Point,"Optimus",141183,0,Blue);
+        
      }   
   }
 //+------------------------------------------------------------------+
