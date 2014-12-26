@@ -9,18 +9,19 @@
 #property strict
 
 #include <Object.mqh>
+#include "SymbolInfo.mqh"
 
 //+------------------------------------------------------------------+
 //| enumerations                                                     |
 //+------------------------------------------------------------------+
-enum ENUM_OP_TYPES
+enum ENUM_ORDER_TYPE
   {
-   OP_TYPE_BUY      = OP_BUY,
-   OP_TYPE_SELL     = OP_SELL,
-   OP_TYPE_BUY_LIMIT = OP_BUYLIMIT,
-   OP_TYPE_SELL_LIMIT = OP_SELLLIMIT,
-   OP_TYPE_BUY_STOP = OP_BUYSTOP,
-   OP_TYPE_SELL_STOP = OP_SELLSTOP,
+   ORDER_TYPE_BUY      = OP_BUY,
+   ORDER_TYPE_SELL     = OP_SELL,
+   ORDER_TYPE_BUY_LIMIT = OP_BUYLIMIT,
+   ORDER_TYPE_SELL_LIMIT = OP_SELLLIMIT,
+   ORDER_TYPE_BUY_STOP = OP_BUYSTOP,
+   ORDER_TYPE_SELL_STOP = OP_SELLSTOP,
   };
 
 
@@ -31,8 +32,7 @@ class COrder : public CObject
   {
 private:
     int             m_id;
-    ENUM_OP_TYPES   m_type;
-    
+    ENUM_ORDER_TYPE   m_type;
     bool            OrderSelect() { return OrderSelect(m_id, SELECT_BY_TICKET); }
 public:
                     COrder(int id);
