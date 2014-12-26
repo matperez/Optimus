@@ -13,16 +13,23 @@
 class COrderInfo : public CObject
   {
 protected:
-   ulong             m_ticket;
-   ENUM_ORDER_TYPE   m_type;
-   datetime          m_expiration;
-   double            m_volume_curr;
-   double            m_stop_loss;
-   double            m_take_profit;
+   ulong            m_ticket;
+   ENUM_ORDER_TYPE  m_type;
+   datetime         m_expiration;
+   double           m_volume_curr;
+   double           m_stop_loss;
+   double           m_take_profit;
+   int              m_magic;
+   double           m_open_price;
+   datetime         m_open_time;
+   string           m_symbol;
+   double           m_profit;
+   string           m_comment;
 
 public:
                      COrderInfo(void);
                     ~COrderInfo(void);
+   bool              IsPending(void) { return !(m_type == OP_BUY || m_type == OP_SELL); }
    //--- methods of access to protected data
    ulong             Ticket(void) const { return(m_ticket); }
    //--- fast access methods to the integer order propertyes
@@ -30,7 +37,14 @@ public:
    ulong             TimeSetupMsc(void) const;
    datetime          TimeDone(void) const;
    ulong             TimeDoneMsc(void) const;
-   ENUM_ORDER_TYPE   OrderType(void) const;
+   ENUM_ORDER_TYPE   GetType(void) const { return (ENUM_ORDER_TYPE) m_type; }
+   int               GetMagic(void) const { return m_magic; }
+   double            GetOpenPrice(void) const { return m_open_price; }
+   datetime          GetOpenTime(void) const { return m_open_time; }
+   string            GetSymbol(void) const { return m_symbol; }
+   double            GetProfit(void) const { return m_profit; }
+   ulong             GetTicket(void) const { return m_ticket; }
+   string            GetComment(void) const { return m_comment; }
    string            TypeDescription(void) const;
    string            StateDescription(void) const;
    datetime          TimeExpiration(void) const;
@@ -116,10 +130,10 @@ ulong COrderInfo::TimeDoneMsc(void) const
 //+------------------------------------------------------------------+
 //| Get the property value "ORDER_TYPE"                              |
 //+------------------------------------------------------------------+
-ENUM_ORDER_TYPE COrderInfo::OrderType(void) const
-  {
-   return((ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE));
-  }
+//ENUM_ORDER_TYPE COrderInfo::OrderType(void) const
+//  {
+//   return((ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE));
+//  }
 //+------------------------------------------------------------------+
 //| Get the property value "ORDER_TYPE" as string                    |
 //+------------------------------------------------------------------+
@@ -367,13 +381,28 @@ bool COrderInfo::SelectByIndex(const int index)
 //| Stored order's current state                                     |
 //+------------------------------------------------------------------+
 void COrderInfo::StoreState(void)
-  {
-   m_type       = (ENUM_ORDER_TYPE) OrderType();
+{
+/*
+OrderClosePrice(), 
+OrderCloseTime(), 
+OrderComment(), 
+OrderCommission(), 
+OrderPrint(), 
+OrderSwap(), 
+*/
+   m_type = (ENUM_ORDER_TYPE) OrderType();
    m_expiration = OrderExpiration();
-   m_volume_curr= OrderLots();
+   m_volume_curr = OrderLots();
    m_stop_loss  = OrderStopLoss();
    m_take_profit= OrderTakeProfit();
-  }
+   m_magic = OrderMagicNumber();
+   m_open_price = OrderOpenPrice();
+   m_open_time = OrderOpenTime();
+   m_symbol = OrderSymbol();
+   m_profit = OrderProfit();
+   m_ticket = OrderTicket();
+   m_comment = OrderComment();
+}
 //+------------------------------------------------------------------+
 //| Check order change                                               |
 //+------------------------------------------------------------------+

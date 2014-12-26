@@ -20,13 +20,16 @@ input   int     Deviation = 10;
 
 CTrade *pTrade;
 CSymbolInfo *pSymbol;
+CList* pOrderList;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    MqlTradeResult result;
+    // Список ордеров
+    pOrderList = new CList();
+    
     pSymbol = new CSymbolInfo();
     pSymbol.Name(_Symbol);
 
@@ -46,7 +49,7 @@ int OnInit()
         Print("Активных ордеров: ", total);
         for (int pos = 0; pos < total; pos++) {
             if (order.SelectByIndex(pos)) {
-                Print("Тип ордера: ", order.OrderType());
+                Print("Тип ордера: ", order.GetType());
             }
         }
     }
@@ -60,25 +63,47 @@ void OnDeinit(const int reason)
   {
 //---
     delete pSymbol;
-    delete pTrade;   
+    delete pTrade;
+    delete pOrderList;
   }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
 //+------------------------------------------------------------------+
 void OnTick()
-  {
-//---
-     int total, ticket;
-     
-     total=OrdersTotal();
-     if(total==0)
-     {
+{
+    UpdateList();
+    COrderInfo* order;     
+
+    if (pOrderList.Total() == 0) {
         if (!pTrade.SellStop(Lot, Bid-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point)) {
-            // обработка ошибки
+            Print("Ошибка выставления ордера: ", pTrade.GetMessage());
         }
         if (!pTrade.BuyStop(Lot, Ask+TakeProfit*Point, NULL, Ask-TakeProfit*Point,Ask+StopLoss*Point)) {
-            // обработка ошибки
+            Print("Ошибка выставления ордера: ", pTrade.GetMessage());
         }
-     }   
-  }
+    } else {
+        Print("Число ордеров в очереди: ", pOrderList.Total());
+        
+        for(int i = 0; i < pOrderList.Total(); i++) {
+            order = pOrderList.GetNodeAtIndex(i);
+            Print("Заказ типа: ", order.GetType(), " Цена открытия: ", order.GetOpenPrice(), " Исполнен: ", order.IsPending()?"Нет":"Да");
+        }
+    }
+}
+  
+//+------------------------------------------------------------------+
+//| Update orders queue                                              |
+//+------------------------------------------------------------------+
+void UpdateList() 
+{
+    COrderInfo* order;
+    pOrderList.Clear();
+    int total = OrdersTotal();
+    for (int pos = 0; pos < total; pos++) {
+        order = new COrderInfo();
+        if (order.SelectByIndex(pos)) {
+            pOrderList.Add(order);
+        }
+    }
+}
 //+------------------------------------------------------------------+
