@@ -48,17 +48,22 @@ int OnInit()
 {
     pSymbol = new CSymbolInfo();
     pSymbol.Name(_Symbol);
+
+    pTrade = new CTrade();
+    pTrade.SetLogLevel(LOG_LEVEL_ALL);
+    pTrade.SetDeviation(Deviation);
+
     Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin(), " Поинт: ", pSymbol.Point());
     
     COrderInfo order;
     int total = OrdersTotal();
+    int lastPos;
     
     if (total == 0) {
         Print("Нет ордеров");
         
     } else {
         Print("Активных ордеров: ", total);
-        int lastPos;
         for (int pos = 0; pos < total; pos++) {
             if (order.SelectByIndex(pos)) {
                 lastPos = pos;
@@ -68,12 +73,6 @@ int OnInit()
         COrderInfo lastOrder;
         lastOrder.SelectByIndex(lastPos);
     }
-
-//    pTrade = new CTrade();
-//    pTrade.SetLogLevel(LOG_LEVEL_ALL);
-//    pTrade.SetDeviation(Deviation);
-    
-//    pTrade.Buy(Lot, _Symbol, 0.0, 2*TakeProfit, TakeProfit);
     
     return(INIT_SUCCEEDED);
 }
@@ -84,7 +83,7 @@ void OnDeinit(const int reason)
   {
 //---
     delete pSymbol;
-   
+    delete pTrade;   
   }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
