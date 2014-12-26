@@ -64,6 +64,7 @@ struct MqlTradeResult
     double          bid;              // Текущая рыночная цена предложения (цены реквота)
     double          ask;              // Текущая рыночная цена спроса (цены реквота)
     string          comment;          // Комментарий брокера к операции (по умолчанию заполняется расшифровкой)
+    int             ticket;           // Номер тикета при открывшемся ордере
     uint            request_id;       // Идентификатор запроса, устанавливается терминалом при отправке 
 };
 
@@ -84,6 +85,7 @@ struct MqlTradeCheckResult
 //+------------------------------------------------------------------+
 class CTrade : public CObject
 {
+
 private:
     ENUM_LOG_LEVELS     m_log_level;
     int                 m_deviation;       // deviation default
@@ -91,6 +93,9 @@ private:
     MqlTradeRequest     m_request;         // request data
     MqlTradeResult      m_result;          // result data
     MqlTradeCheckResult m_check_result;  // result check data
+    color               GetColor(const ENUM_ORDER_TYPE order_type);
+    void                ClearStructures(void);
+    
 public:
             CTrade();
             ~CTrade();
@@ -125,97 +130,96 @@ CTrade::~CTrade()
 bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume,
                           const double price,const double sl,const double tp,const string comment)
 {
-//--- check stopped
     if(IsStopped())
         return(false);
-//--- clean
-   //ClearStructures();
-//--- check
+    ClearStructures();
     if(order_type!=ORDER_TYPE_BUY && order_type!=ORDER_TYPE_SELL)
     {
         m_result.code = ERR_INVALID_TRADE_PARAMETERS;
         m_result.comment = ErrorDescription(m_result.code);
         return(false);
     }
-//--- setting request
-   m_request.symbol      = symbol;
-   m_request.magic       = m_magic;
-   m_request.volume      = volume;
-   m_request.type        = order_type;
-   m_request.price       = price;
-   m_request.sl          = sl;
-   m_request.tp          = tp;
-   m_request.deviation   = m_deviation;
-//--- check order type
-//   if(!OrderTypeCheck(symbol))
-//     return(false);
-//--- check filling
-   m_request.comment=comment;
-   
-   int result = OrderSend(symbol, order_type, volume, price, m_deviation, sl, tp, comment, m_magic, 0, Blue);
-   if (result < 0) {
-       if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
-           Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
-       }
-       return false;
-   }
-   return true;
+    m_request.symbol = symbol;
+    m_request.magic = m_magic;
+    m_request.volume = volume;
+    m_request.type = order_type;
+    m_request.price = price;
+    m_request.sl = sl;
+    m_request.tp = tp;
+    m_request.deviation = m_deviation;
+    m_request.comment = comment;
+    
+    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, 0, GetColor(m_request.type));
+
+    if (m_result.ticket < 0) {
+        m_result.code = GetLastError();
+        m_result.comment = ErrorDescription(m_result.code);
+        return (false);
+    }
+
+    return (true);
 }
+//+------------------------------------------------------------------+
+//| Clear structures m_request,m_result and m_check_result           |
+//+------------------------------------------------------------------+
+void CTrade::ClearStructures(void)
+{
+   ZeroMemory(m_request);
+   ZeroMemory(m_result);
+}
+//+------------------------------------------------------------------+
+//| Order color                                                      |
+//+------------------------------------------------------------------+
+color CTrade::GetColor(const ENUM_ORDER_TYPE order_type)
+{
+    switch(order_type)
+    {
+        case OP_BUY:
+        case OP_BUYLIMIT:
+        case OP_BUYSTOP:
+            return Blue;
+        case OP_SELL:
+        case OP_SELLLIMIT:
+        case OP_SELLSTOP:
+            return Red;
+    }
+    return Gray;
+}
+
 //+------------------------------------------------------------------+
 //| Buy operation                                                    |
 //+------------------------------------------------------------------+
 bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
 {
     CSymbolInfo sym;
-
     if (volume<=0.0) {
         m_result.code = ERR_INVALID_TRADE_VOLUME;
         m_result.comment = ErrorDescription(m_result.code);
         return(false);
     }
-    
     sym.Name((symbol==NULL)?Symbol():symbol);
-    
     if(price==0.0) {
         sym.RefreshRates();
         price=sym.Ask();
     }
-    
-    return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,sl,tp,comment));
-    //if (m_log_level == LOG_LEVEL_ALL) {
-    //    Print("Новый запрос на покупку по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price-sl*Point, ", профит: ", price+tp*Point);
-    //}
-    //int result = OrderSend(symbol, OP_BUY, volume, price, m_deviation, price-sl*Point, price+tp*Point, comment, m_magic, 0, Blue);
-    //if (result < 0) {
-    //    if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
-    //        Print("Ошибка покупки по рынку. Код ошибки: ", GetLastError());
-    //    }
-    //    return false;
-    //}
-    //if (m_log_level == LOG_LEVEL_ALL) {
-    //    Print("Успешная покупка по рынку. Код ответа: ", result);
-    //}
-    //return true;
+    return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,price-sl,price+tp,comment));
 }
-
+//+------------------------------------------------------------------+
+//| Sell operation                                                    |
+//+------------------------------------------------------------------+
 bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
 {
-    if (price == 0.0) {
-        price = Bid;
+    CSymbolInfo sym;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        m_result.comment = ErrorDescription(m_result.code);
+        return(false);
     }
-    if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Новый запрос на продажу по рынку. Символ: ", symbol,",цена: ", price, ", стоп: ", price+sl*Point, ", профит: ", price-tp*Point);
+    sym.Name((symbol==NULL)?Symbol():symbol);
+    if(price==0.0) {
+        sym.RefreshRates();
+        price=sym.Ask();
     }
-    int result = OrderSend(symbol, OP_SELL, volume, price, m_deviation, price+sl*Point, price-tp*Point, comment, m_magic, 0, Red);
-    if (result < 0) {
-        if (m_log_level == LOG_LEVEL_ERRORS || m_log_level == LOG_LEVEL_ALL) {
-            Print("Ошибка продажи по рынку. Код ошибки: ", GetLastError());
-        }
-        return false;
-    }
-    if (m_log_level == LOG_LEVEL_ALL) {
-        Print("Успешная продажа по рынку. Код ответа: ", result);
-    }
-    return true;
+    return(PositionOpen(sym.Name(),ORDER_TYPE_SELL,volume,price,price+sl,price-tp,comment));
 }
 
