@@ -72,23 +72,65 @@ void OnDeinit(const int reason)
 void OnTick()
 {
     UpdateList();
-    COrderInfo* order;     
+    COrderInfo* order1;
+    COrderInfo* order2;     
+    
+    int total = pOrderList.Total();
+    
+    Print("Число ордеров в очереди: ", total);
 
-    if (pOrderList.Total() == 0) {
+    if (total == 0) {
+        OpenOppositePosition();
+    } else if (total == 2) {
+        ListOrders(pOrderList);
+        order1 = pOrderList.GetNodeAtIndex(0);
+        order2 = pOrderList.GetNodeAtIndex(1);
+        if (order1.IsPending() && order2.IsPending()) {
+            Print("Ни один ордер не исполнился");
+        } else if (order1.IsPending()) {
+            ModifyOpposite(order1);
+        } else {
+            ModifyOpposite(order2);
+        }
+    } else {
+        
+    }
+}
+//+------------------------------------------------------------------+
+//| List active orders                                               |
+//+------------------------------------------------------------------+
+void ModifyOpposite(COrderInfo* order)
+{
+    if (order.GetType() == OP_BUYSTOP) {
+        pTrade.BuyStop(Lot, Ask+TakeProfit*Point, NULL, Ask-StopLoss*Point, Ask+StopLoss*Point);   
+    } else {
+        pTrade.SellStop(Lot, Bid-TakeProfit*Point, NULL, Bid+StopLoss*Point, Bid-StopLoss*Point);   
+    }
+    OrderDelete(order.GetTicket(), Orange);
+}
+//+------------------------------------------------------------------+
+//| List active orders                                               |
+//+------------------------------------------------------------------+
+void ListOrders(CList* pOrderList) 
+{
+    COrderInfo* order;     
+    for(int i = 0; i < pOrderList.Total(); i++) {
+        order = pOrderList.GetNodeAtIndex(i);
+        Print("Заказ типа: ", order.GetType(), " Цена открытия: ", order.GetOpenPrice(), " Исполнен: ", order.IsPending()?"Нет":"Да");
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Open opposite positions on expert initialization                 |
+//+------------------------------------------------------------------+
+void OpenOppositePosition() 
+{
         if (!pTrade.SellStop(Lot, Bid-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point)) {
             Print("Ошибка выставления ордера: ", pTrade.GetMessage());
         }
         if (!pTrade.BuyStop(Lot, Ask+TakeProfit*Point, NULL, Ask-TakeProfit*Point,Ask+StopLoss*Point)) {
             Print("Ошибка выставления ордера: ", pTrade.GetMessage());
         }
-    } else {
-        Print("Число ордеров в очереди: ", pOrderList.Total());
-        
-        for(int i = 0; i < pOrderList.Total(); i++) {
-            order = pOrderList.GetNodeAtIndex(i);
-            Print("Заказ типа: ", order.GetType(), " Цена открытия: ", order.GetOpenPrice(), " Исполнен: ", order.IsPending()?"Нет":"Да");
-        }
-    }
 }
   
 //+------------------------------------------------------------------+
