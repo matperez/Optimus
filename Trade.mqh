@@ -97,6 +97,10 @@ public:
                                                                      const double tp=0.0, const datetime expiration=0, const string comment="");
     bool    BuyStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
                                                                      const double tp=0.0, const datetime expiration=0, const string comment="");
+    bool    SellLimit(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
+                                                                     const double tp=0.0, const datetime expiration=0, const string comment="");
+    bool    BuyLimit(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
+                                                                     const double tp=0.0, const datetime expiration=0, const string comment="");
     bool    PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume, 
                                                                         const double price,const double sl,const double tp,const string comment);
     bool    OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume, const double limit_price, 
@@ -253,6 +257,40 @@ bool CTrade::BuyStop(const double volume,const double price,const string symbol=
     }
     sym.Name((symbol==NULL)?Symbol():symbol);
     return(OrderOpen(sym.Name(),ORDER_TYPE_BUY_STOP,volume,0.0,price,sl,tp,expiration,comment));
+}
+//+------------------------------------------------------------------+
+//| Sell limit order                                               |
+//+------------------------------------------------------------------+
+bool CTrade::SellLimit(const double volume,const double price,const string symbol=NULL,const double sl=0.0,const double tp=0.0, const datetime expiration=0, const string comment="")
+{
+    CSymbolInfo sym;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        return(false);
+    }
+    if(price==0.0) {
+        m_result.code = ERR_INVALID_PRICE;
+        return(false);
+    }
+    sym.Name((symbol==NULL)?Symbol():symbol);
+    return(OrderOpen(sym.Name(),ORDER_TYPE_SELL_LIMIT,volume,0.0,price,sl,tp,expiration,comment));
+}
+//+------------------------------------------------------------------+
+//| Buy limit order                                               |
+//+------------------------------------------------------------------+
+bool CTrade::BuyLimit(const double volume,const double price,const string symbol=NULL,const double sl=0.0,const double tp=0.0, const datetime expiration=0, const string comment="")
+{
+    CSymbolInfo sym;
+    if (volume<=0.0) {
+        m_result.code = ERR_INVALID_TRADE_VOLUME;
+        return(false);
+    }
+    if(price==0.0) {
+        m_result.code = ERR_INVALID_PRICE;
+        return(false);
+    }
+    sym.Name((symbol==NULL)?Symbol():symbol);
+    return(OrderOpen(sym.Name(),ORDER_TYPE_BUY_LIMIT,volume,0.0,price,sl,tp,expiration,comment));
 }
 //+------------------------------------------------------------------+
 //| Buy operation                                                    |
