@@ -322,7 +322,7 @@ bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,
     sym.Name((symbol==NULL)?Symbol():symbol);
     if(price==0.0) {
         sym.RefreshRates();
-        price=sym.Ask();
+        price=sym.Bid();
     }
     return(PositionOpen(sym.Name(),ORDER_TYPE_SELL,volume,price,price+sl,price-tp,comment));
 }

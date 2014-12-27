@@ -112,7 +112,7 @@ void OpenTrendPosition(COrderInfo* order)
 {
       Alert("Мы в функции!!!!!!!!");
     if (order.GetType() == OP_BUYSTOP) {
-        pTrade.Sell(Lot, NULL, Bid, Bid+StopLoss*Point, Bid-TakeProfit*Point);   
+        pTrade.Sell(Lot, NULL, Bid, StopLoss*Point, TakeProfit*Point);   
        if (pTrade.GetCode() != ERR_NO_ERROR) {
             Print("Ошибка открытия заказа: ", pTrade.GetMessage());
        }
