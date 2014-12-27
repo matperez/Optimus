@@ -46,6 +46,8 @@ public:
    double            GetProfit(void) const { return m_profit; }
    ulong             GetTicket(void) const { return m_ticket; }
    string            GetComment(void) const { return m_comment; }
+   double            GetTakeProfit(void) const { return m_take_profit; }
+   double            GetStopLoss(void) const { return m_stop_loss; }
    string            TypeDescription(void) const;
    string            StateDescription(void) const;
    datetime          TimeExpiration(void) const;

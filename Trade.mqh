@@ -91,8 +91,8 @@ public:
     void    SetDeviation(const int deviation) { m_deviation = deviation; }
     int     GetCode() { return m_result.code; }
     string  GetMessage() { return ErrorDescription(m_result.code); }
-    bool    Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
-    bool    Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="");
+    bool    Buy(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="");
+    bool    Sell(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="");
     bool    SellStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
                                                                      const double tp=0.0, const datetime expiration=0, const string comment="");
     bool    BuyStop(const double volume,const double price,const string symbol=NULL,const double sl=0.0,
@@ -295,7 +295,7 @@ bool CTrade::BuyLimit(const double volume,const double price,const string symbol
 //+------------------------------------------------------------------+
 //| Buy operation                                                    |
 //+------------------------------------------------------------------+
-bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
+bool CTrade::Buy(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="")
 {
     CSymbolInfo sym;
     if (volume<=0.0) {
@@ -307,12 +307,12 @@ bool CTrade::Buy(const double volume,const string symbol=NULL,double price=0.0,c
         sym.RefreshRates();
         price=sym.Ask();
     }
-    return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,price-sl,price+tp,comment));
+    return(PositionOpen(sym.Name(),ORDER_TYPE_BUY,volume,price,sl,tp,comment));
 }
 //+------------------------------------------------------------------+
 //| Sell operation                                                    |
 //+------------------------------------------------------------------+
-bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,const double sl=0.0,const double tp=0.0,const string comment="")
+bool CTrade::Sell(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="")
 {
     CSymbolInfo sym;
     if (volume<=0.0) {
@@ -324,6 +324,6 @@ bool CTrade::Sell(const double volume,const string symbol=NULL,double price=0.0,
         sym.RefreshRates();
         price=sym.Bid();
     }
-    return(PositionOpen(sym.Name(),ORDER_TYPE_SELL,volume,price,price+sl,price-tp,comment));
+    return(PositionOpen(sym.Name(),ORDER_TYPE_SELL,volume,price,sl,tp,comment));
 }
 
