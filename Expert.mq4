@@ -39,7 +39,11 @@ int OnInit()
     pTrade.SetLogLevel(LOG_LEVEL_ERRORS);
     pTrade.SetDeviation(Deviation);
     
-    Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin(), " Поинт: ", pSymbol.Point());
+    Print("Выбранный символ: ", pSymbol.Name()," Спред: ", NormalizeDouble(Ask-Bid, Digits));
+    
+    double centerPrice = Ask+Bid/2;
+    pTrade.SellStop(Lot, centerPrice-TakeProfit*Point, NULL, centerPrice+2*StopLoss*Point, centerPrice-TakeProfit*Point);
+    
     
     return(INIT_SUCCEEDED);
 }
@@ -66,15 +70,15 @@ void OnTick()
 
     total = pOrderList.Total();
 
-    if (total == 0) {
-        OpenOppositePositions();
-    } else if(total == 1) {
-        OpenTrendPosition(pOrderList.GetFirstNode());
-    } else if (total == 2) {
-        ModifyOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
-    } else {
-        // Больше двух ордеров
-    }
+    //if (total == 0) {
+    //    OpenOppositePositions();
+    //} else if(total == 1) {
+    //    OpenTrendPosition(pOrderList.GetFirstNode());
+    //} else if (total == 2) {
+    //    ModifyOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
+    //} else {
+    //    // Больше двух ордеров
+    //}
 }
 //+------------------------------------------------------------------+
 //| Два ордера напротив друг друга                                  |
@@ -115,6 +119,17 @@ void OpenTrendPosition(COrderInfo* order)
         }
     }
 }
+
+//+------------------------------------------------------------------+
+//| Open opposite positions on expert initialization                 |
+//+------------------------------------------------------------------+
+void OpenOppositePositions()
+{
+    double centerPrice = Ask+Bid/2;
+    pTrade.SellStop(Lot, centerPrice-TakeProfit*Point, NULL, centerPrice+TakeProfit*Point, centerPrice-StopLoss*Point);
+    pTrade.BuyStop(Lot, centerPrice+TakeProfit*Point, NULL, centerPrice-TakeProfit*Point, centerPrice+StopLoss*Point);
+}
+
 //+------------------------------------------------------------------+
 //| List active orders                                               |
 //+------------------------------------------------------------------+
@@ -128,15 +143,6 @@ void ListOrders(CList* pOrderList)
     }
 }
 
-//+------------------------------------------------------------------+
-//| Open opposite positions on expert initialization                 |
-//+------------------------------------------------------------------+
-void OpenOppositePositions() 
-{
-     pTrade.SellStop(Lot, Bid-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point);
-     pTrade.BuyStop(Lot, Ask+TakeProfit*Point, NULL, Ask-TakeProfit*Point,Ask+StopLoss*Point);
-}
-  
 //+------------------------------------------------------------------+
 //| Update orders queue                                              |
 //+------------------------------------------------------------------+

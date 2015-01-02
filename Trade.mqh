@@ -115,13 +115,13 @@ public:
 bool CTrade::Delete(const int ticket)
 {
     bool success = OrderDelete(ticket, Orange);
-    string info = "Запрос на удаление ордера: "+ticket+". ";
+    string info = "Order delete request: "+ticket+". ";
     if (success) {
-        info += "Удачный.";
+        info += "Successfull.";
     } else {
         int code = GetLastError();
         string description = ErrorDescription(code);
-        info += "Ошибка: "+code+", Описание: "+description;
+        info += "Error: "+code+", Description: "+description;
     }
     if (m_log_level == LOG_LEVEL_ALL) {
         Print(info);
@@ -373,9 +373,9 @@ bool CTrade::Sell(const double volume,double price=0.0,const string symbol=NULL,
 string GetOrderInfo(MqlTradeRequest &request, MqlTradeResult &result)
 {
     string info = NewOrderTypeToString(request.type) + ". ";
-    info += "Цена: "+request.price+", Проскальзывание: "+request.deviation+", Объем: "+request.volume+", Стоп: "+request.sl+" ,Тейк: "+request.tp+". ";
+    info += "Price: "+request.price+", Deviation: "+request.deviation+", Volume: "+request.volume+", Stop Loss: "+request.sl+" ,Take Profit: "+request.tp+". ";
     info += "Magic: "+request.magic+" ,Comment: "+request.comment+". ";
-    info += "Тикет: "+result.ticket+", Код ошибки: "+result.code+", Описание: "+result.comment+". ";    
+    info += "Ticket: "+result.ticket+", Error: "+result.code+", Description: "+result.comment+". ";    
     return info; 
 }
 //+------------------------------------------------------------------+
@@ -385,17 +385,17 @@ string NewOrderTypeToString(const ENUM_ORDER_TYPE type)
 {
     switch(type) {
         case OP_BUY:
-            return "Новая покупка по рынку";
+            return "Buy";
         case OP_SELL:
-            return "Новая продажа по рынку";
+            return "Sell";
         case OP_SELLLIMIT:
-            return "Новая продажа лимиткой";
+            return "Sell Limit";
         case OP_SELLSTOP:
-            return "Новая продажа стоп";
+            return "Sell Stop";
         case OP_BUYLIMIT:
-            return "Новая покупка лимиткой";
+            return "Buy Limit";
         case OP_BUYSTOP:
-            return "Новая покупка стоп";        
+            return "Buy Stop";        
     }
     return "";
 }
