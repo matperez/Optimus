@@ -18,7 +18,7 @@ input   int     StopLoss = 200;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 
-double Sigma = TakeProfit + 5;
+double Sigma;
 
 CTrade *pTrade;
 CSymbolInfo *pSymbol;
@@ -38,6 +38,8 @@ int OnInit()
     pTrade = new CTrade();
     pTrade.SetLogLevel(LOG_LEVEL_ERRORS);
     pTrade.SetDeviation(Deviation);
+    
+    Sigma = NormalizeDouble((TakeProfit + 5)*Point, Digits);
     
     return(INIT_SUCCEEDED);
 }
@@ -67,9 +69,9 @@ void OnTick()
     if (total == 0) {
         OpenOppositePositions();
     } else if(total == 1) {
-        OpenTrendPosition(pOrderList.GetFirstNode());
+        HandleSinglePosition(pOrderList.GetFirstNode());
     } else if (total == 2) {
-        ModifyOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
+        HandleOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
     } else {
         // Ѕольше двух ордеров
     }
@@ -77,14 +79,17 @@ void OnTick()
 //+------------------------------------------------------------------+
 //| ƒва ордера напротив друг друга                                  |
 //+------------------------------------------------------------------+
-void ModifyOppositePosition(COrderInfo* order1, COrderInfo* order2)
+void HandleOppositePosition(COrderInfo* order1, COrderInfo* order2)
 {
-    if (order1.GetType() == OP_SELLSTOP && order2.GetType() == OP_BUY && MathAbs(order1.GetOpenPrice() - order2.GetOpenPrice()) > Sigma*Point) {
-        pTrade.SellStop(2*Lot, Bid-TakeProfit*Point, NULL, Bid+StopLoss*Point, Bid-StopLoss*Point);
-        pTrade.Delete(order1.GetTicket());
-    } else if (order1.GetType() == OP_BUYSTOP && order2.GetType() == OP_SELL && MathAbs(order1.GetOpenPrice() - order2.GetOpenPrice()) > Sigma*Point) {
-        pTrade.BuyStop(2*Lot, Ask+TakeProfit*Point, NULL, Ask-TakeProfit*Point, Ask+StopLoss*Point);
-        pTrade.Delete(order1.GetTicket());
+    double sigma = NormalizeDouble(MathAbs(order1.GetOpenPrice() - order2.GetOpenPrice()), Digits);
+    if (order1.GetType() == OP_SELLSTOP && order2.GetType() == OP_BUY &&  sigma >= Sigma) {
+        if (pTrade.SellStop(2*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit())) {
+            pTrade.Delete(order1.GetTicket());
+        }
+    } else if (order1.GetType() == OP_BUYSTOP && order2.GetType() == OP_SELL && sigma >= Sigma) {
+        if (pTrade.BuyStop(2*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit())) {
+            pTrade.Delete(order1.GetTicket());
+        };
     } else if (order1.GetType() == OP_BUY && order2.GetType() == OP_SELL) {
         pTrade.BuyStop(3*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit());
     } else if (order1.GetType() == OP_SELL && order2.GetType() == OP_BUY) {
@@ -94,7 +99,7 @@ void ModifyOppositePosition(COrderInfo* order1, COrderInfo* order2)
 //+------------------------------------------------------------------+
 //| ќткрывает трендовую позицию в направлении прошлого закрыти€      |
 //+------------------------------------------------------------------+
-void OpenTrendPosition(COrderInfo* order)
+void HandleSinglePosition(COrderInfo* order)
 {
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
