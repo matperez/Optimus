@@ -14,7 +14,7 @@
 #include <Arrays\List.mqh>
 
 input   int     TakeProfit = 50;
-input   int     StopLoss = 100;
+input   int     StopLoss = 200;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 
@@ -38,12 +38,6 @@ int OnInit()
     pTrade = new CTrade();
     pTrade.SetLogLevel(LOG_LEVEL_ERRORS);
     pTrade.SetDeviation(Deviation);
-    
-    Print("Выбранный символ: ", pSymbol.Name()," Спред: ", NormalizeDouble(Ask-Bid, Digits));
-    
-    double centerPrice = Ask+Bid/2;
-    pTrade.SellStop(Lot, centerPrice-TakeProfit*Point, NULL, centerPrice+2*StopLoss*Point, centerPrice-TakeProfit*Point);
-    
     
     return(INIT_SUCCEEDED);
 }
@@ -70,15 +64,15 @@ void OnTick()
 
     total = pOrderList.Total();
 
-    //if (total == 0) {
-    //    OpenOppositePositions();
-    //} else if(total == 1) {
-    //    OpenTrendPosition(pOrderList.GetFirstNode());
-    //} else if (total == 2) {
-    //    ModifyOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
-    //} else {
-    //    // Больше двух ордеров
-    //}
+    if (total == 0) {
+        OpenOppositePositions();
+    } else if(total == 1) {
+        OpenTrendPosition(pOrderList.GetFirstNode());
+    } else if (total == 2) {
+        ModifyOppositePosition(pOrderList.GetNodeAtIndex(0), pOrderList.GetNodeAtIndex(1));
+    } else {
+        // Больше двух ордеров
+    }
 }
 //+------------------------------------------------------------------+
 //| Два ордера напротив друг друга                                  |
@@ -125,9 +119,9 @@ void OpenTrendPosition(COrderInfo* order)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    double centerPrice = Ask+Bid/2;
-    pTrade.SellStop(Lot, centerPrice-TakeProfit*Point, NULL, centerPrice+TakeProfit*Point, centerPrice-StopLoss*Point);
-    pTrade.BuyStop(Lot, centerPrice+TakeProfit*Point, NULL, centerPrice-TakeProfit*Point, centerPrice+StopLoss*Point);
+    double price = (Ask+Bid)/2;
+    pTrade.SellStop(Lot, price-TakeProfit*Point, NULL, price+TakeProfit*Point, price-StopLoss*Point);
+    pTrade.BuyStop(Lot, price+TakeProfit*Point, NULL, price-TakeProfit*Point, price+StopLoss*Point);
 }
 
 //+------------------------------------------------------------------+

@@ -191,9 +191,9 @@ bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,c
     m_request.magic = m_magic;
     m_request.volume = volume;
     m_request.type = order_type;
-    m_request.price = price;
-    m_request.sl = sl;
-    m_request.tp = tp;
+    m_request.price = NormalizeDouble(price, Digits);
+    m_request.sl = NormalizeDouble(sl, Digits);
+    m_request.tp = NormalizeDouble(tp, Digits);
     m_request.deviation = m_deviation;
     m_request.comment = comment;
     
@@ -237,9 +237,9 @@ bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,cons
     m_request.volume = volume;
     m_request.type = order_type;
     m_request.stoplimit = limit_price;
-    m_request.price = price;
-    m_request.sl = sl;
-    m_request.tp = tp;
+    m_request.price = NormalizeDouble(price, Digits);
+    m_request.sl = NormalizeDouble(sl, Digits);
+    m_request.tp = NormalizeDouble(tp, Digits);
     m_request.expiration = expiration;
 //--- check expiration
     m_request.comment = comment;
