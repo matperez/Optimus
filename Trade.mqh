@@ -123,7 +123,10 @@ bool CTrade::Delete(const int ticket)
         string description = ErrorDescription(code);
         info += "Ошибка: "+code+", Описание: "+description;
     }
-    if (m_log_level == LOG_LEVEL_ALL || m_log_level == LOG_LEVEL_ERRORS) {
+    if (m_log_level == LOG_LEVEL_ALL) {
+        Print(info);
+    }
+    if (m_log_level == LOG_LEVEL_ERRORS && !success) {
         Print(info);
     }
     return success;
@@ -205,6 +208,10 @@ bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,c
         Print(GetOrderInfo(m_request, m_result));
     }
 
+    if (m_log_level == LOG_LEVEL_ERRORS && m_result.ticket < 0) {
+        Print(GetOrderInfo(m_request, m_result));
+    }
+
     return m_result.ticket < 0 ? (false) : (true);
 }
 //+------------------------------------------------------------------+
@@ -247,6 +254,10 @@ bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,cons
     }
 
     if (m_log_level == LOG_LEVEL_ALL) {
+        Print(GetOrderInfo(m_request, m_result));
+    }
+    
+    if (m_log_level == LOG_LEVEL_ERRORS && m_result.ticket < 0) {
         Print(GetOrderInfo(m_request, m_result));
     }
 
