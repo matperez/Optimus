@@ -36,7 +36,7 @@ int OnInit()
     pSymbol.Name(_Symbol);
 
     pTrade = new CTrade();
-    pTrade.SetLogLevel(LOG_LEVEL_ALL);
+    pTrade.SetLogLevel(LOG_LEVEL_ERRORS);
     pTrade.SetDeviation(Deviation);
     
     Print("Выбранный символ: ", pSymbol.Name(), " Минимальный лот: ", pSymbol.LotsMin(), " Поинт: ", pSymbol.Point());
