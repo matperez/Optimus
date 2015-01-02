@@ -105,8 +105,29 @@ public:
                                                                         const double price,const double sl,const double tp,const string comment);
     bool    OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,const double volume, const double limit_price, 
                                              const double price,const double sl,const double tp, const datetime expiration,const string comment);
+    bool    Delete(const int ticket);                                             
 
 };
+
+//+------------------------------------------------------------------+
+//| Удаление ордера                                                  |
+//+------------------------------------------------------------------+
+bool CTrade::Delete(const int ticket)
+{
+    bool success = OrderDelete(ticket, Orange);
+    string info = "Запрос на удаление ордера: "+ticket+". ";
+    if (success) {
+        info += "Удачный.";
+    } else {
+        int code = GetLastError();
+        string description = ErrorDescription(code);
+        info += "Ошибка: "+code+", Описание: "+description;
+    }
+    if (m_log_level == LOG_LEVEL_ALL || m_log_level == LOG_LEVEL_ERRORS) {
+        Print(info);
+    }
+    return success;
+}
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -178,10 +199,13 @@ bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,c
     if (m_result.ticket < 0) {
         m_result.code = GetLastError();
         m_result.comment = ErrorDescription(m_result.code);
-        return (false);
     }
 
-    return (true);
+    if (m_log_level == LOG_LEVEL_ALL) {
+        Print(GetOrderInfo(m_request, m_result));
+    }
+
+    return m_result.ticket < 0 ? (false) : (true);
 }
 //+------------------------------------------------------------------+
 //| Installation pending order                                       |
@@ -212,6 +236,7 @@ bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,cons
     m_request.expiration = expiration;
 //--- check expiration
     m_request.comment = comment;
+    m_request.deviation = m_deviation;
 //--- action and return the result
 
     m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, m_request.expiration, GetColor(m_request.type));
@@ -219,11 +244,15 @@ bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,cons
     if (m_result.ticket < 0) {
         m_result.code = GetLastError();
         m_result.comment = ErrorDescription(m_result.code);
-        return (false);
     }
 
-    return (true);
+    if (m_log_level == LOG_LEVEL_ALL) {
+        Print(GetOrderInfo(m_request, m_result));
+    }
+
+    return m_result.ticket < 0 ? (false) : (true);
 }
+
 //+------------------------------------------------------------------+
 //| Sell by stop order                                               |
 //+------------------------------------------------------------------+
@@ -327,3 +356,35 @@ bool CTrade::Sell(const double volume,double price=0.0,const string symbol=NULL,
     return(PositionOpen(sym.Name(),ORDER_TYPE_SELL,volume,price,sl,tp,comment));
 }
 
+//+------------------------------------------------------------------+
+//| Данные торговой операции в текстовом виде                        |
+//+------------------------------------------------------------------+
+string GetOrderInfo(MqlTradeRequest &request, MqlTradeResult &result)
+{
+    string info = NewOrderTypeToString(request.type) + ". ";
+    info += "Цена: "+request.price+", Проскальзывание: "+request.deviation+", Объем: "+request.volume+", Стоп: "+request.sl+" ,Тейк: "+request.tp+". ";
+    info += "Magic: "+request.magic+" ,Comment: "+request.comment+". ";
+    info += "Тикет: "+result.ticket+", Код ошибки: "+result.code+", Описание: "+result.comment+". ";    
+    return info; 
+}
+//+------------------------------------------------------------------+
+//| Название торговой операции в текстовом виде                      |
+//+------------------------------------------------------------------+
+string NewOrderTypeToString(const ENUM_ORDER_TYPE type)
+{
+    switch(type) {
+        case OP_BUY:
+            return "Новая покупка по рынку";
+        case OP_SELL:
+            return "Новая продажа по рынку";
+        case OP_SELLLIMIT:
+            return "Новая продажа лимиткой";
+        case OP_SELLSTOP:
+            return "Новая продажа стоп";
+        case OP_BUYLIMIT:
+            return "Новая покупка лимиткой";
+        case OP_BUYSTOP:
+            return "Новая покупка стоп";        
+    }
+    return "";
+}
