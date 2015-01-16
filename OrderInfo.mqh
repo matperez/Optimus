@@ -31,6 +31,8 @@ public:
                     ~COrderInfo(void);
    bool              IsPending(void) { return !(m_type == OP_BUY || m_type == OP_SELL); }
    double            GetVolume(void) { return m_volume_curr; }
+   bool              IsBuy(void);
+   bool              IsSell(void);
    //--- methods of access to protected data
    ulong             Ticket(void) const { return(m_ticket); }
    //--- fast access methods to the integer order propertyes
@@ -102,6 +104,17 @@ COrderInfo::COrderInfo(void) : m_ticket(ULONG_MAX),
 COrderInfo::~COrderInfo(void)
   {
   }
+
+bool COrderInfo::IsBuy(void)
+{
+   return m_type == OP_BUY;
+}  
+
+bool COrderInfo::IsSell(void)
+{
+   return m_type == OP_SELL;
+}  
+  
 //+------------------------------------------------------------------+
 //| Get the property value "ORDER_TIME_SETUP"                        |
 //+------------------------------------------------------------------+
