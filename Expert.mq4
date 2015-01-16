@@ -14,7 +14,7 @@
 #include <Arrays\List.mqh>
 
 input   int     TakeProfit = 50;
-input   int     StopLoss = 200;
+input   int     StopLoss = 100;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 
@@ -103,18 +103,20 @@ void HandleSinglePosition(COrderInfo* order)
 {
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
-            pTrade.Sell(Lot, Bid, NULL, Bid+StopLoss*Point, Bid-TakeProfit*Point);   
-            pTrade.BuyStop(2*Lot, Ask+TakeProfit*Point, NULL, Ask-TakeProfit*Point, Ask+StopLoss*Point);   
+            pTrade.Sell(Lot, Bid, NULL, Ask+StopLoss*Point, Ask-TakeProfit*Point);   
+            pTrade.BuyStop(2*Lot, Bid+TakeProfit*Point, NULL, Ask-TakeProfit*Point, Ask+StopLoss*Point);   
         } else if(order.GetType() == OP_SELLSTOP) {
-            pTrade.Buy(Lot, Ask, NULL, Ask+TakeProfit*Point, Ask-StopLoss*Point);
-            pTrade.SellStop(2*Lot, Bid-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point);   
+            pTrade.Buy(Lot, Ask, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point);
+            pTrade.SellStop(2*Lot, Ask-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point);   
         }    
         pTrade.Delete(order.GetTicket());
     } else {
         if (order.GetType() == OP_BUY) { // OP_BUY}
-            pTrade.SellStop(2*Lot, order.GetOpenPrice()-TakeProfit*Point, NULL, order.GetOpenPrice()+StopLoss*Point, order.GetOpenPrice()-StopLoss*Point);   
+//            pTrade.SellStop(2*Lot, order.GetOpenPrice()-TakeProfit*Point, NULL, order.GetOpenPrice()+StopLoss*Point, order.GetOpenPrice()-StopLoss*Point);   
+            pTrade.SellStop(2*Lot, order.GetOpenPrice()-TakeProfit*Point, NULL, order.GetTakeProfit(), order.GetStopLoss());  
         } else { // OP_SELL
-            pTrade.BuyStop(2*Lot, order.GetOpenPrice()+TakeProfit*Point, NULL, order.GetOpenPrice()-StopLoss*Point, order.GetOpenPrice()+StopLoss*Point);   
+//            pTrade.BuyStop(2*Lot, order.GetOpenPrice()+TakeProfit*Point, NULL, order.GetOpenPrice()-StopLoss*Point, order.GetOpenPrice()+StopLoss*Point);   
+            pTrade.BuyStop(2*Lot, order.GetOpenPrice()+TakeProfit*Point, NULL, order.GetTakeProfit(), order.GetStopLoss());  
         }
     }
 }
@@ -124,7 +126,7 @@ void HandleSinglePosition(COrderInfo* order)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    double price = (Ask+Bid)/2;
+    double price = Bid;
     pTrade.SellStop(Lot, price-TakeProfit*Point, NULL, price+TakeProfit*Point, price-StopLoss*Point);
     pTrade.BuyStop(Lot, price+TakeProfit*Point, NULL, price-TakeProfit*Point, price+StopLoss*Point);
 }
