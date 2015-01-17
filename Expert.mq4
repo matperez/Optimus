@@ -179,8 +179,8 @@ void HandleSinglePosition(COrderInfo* order)
 void OpenOppositePositions()
 {
     double price = Bid;
-    pTrade.BuyStop(Lot, price+TakeProfit*Point, NULL, price-TakeProfit*Point, price+StopLoss*Point, 0, NULL, 1);
-    pTrade.SellStop(Lot, price-TakeProfit*Point, NULL, price+TakeProfit*Point, price-StopLoss*Point, 0, NULL, 2);
+    pTrade.BuyStop(Lot, price+TakeProfit*Point, NULL, price-2*TakeProfit*Point, price+StopLoss*Point, 0, NULL, 1);
+    pTrade.SellStop(Lot, price-TakeProfit*Point, NULL, price+2*TakeProfit*Point, price-StopLoss*Point, 0, NULL, 2);
 }
 
 //+------------------------------------------------------------------+
