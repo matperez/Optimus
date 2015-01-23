@@ -17,8 +17,8 @@ input   int     TakeProfit = 50;
 input   int     StopLoss = 100;
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
+input   int     Spred = 20;
 
-double Sigma;
 
 // Счетчик ордеров указанного типа в текущей итерации и в прошлом
 int counters[3], countersOld[3];
@@ -43,7 +43,6 @@ int OnInit()
     pTrade.SetLogLevel(LOG_LEVEL_ERRORS);
     pTrade.SetDeviation(Deviation);
     
-    Sigma = NormalizeDouble((TakeProfit + 5)*Point, Digits);
     ArrayInitialize(countersOld, 0);
     
     return(INIT_SUCCEEDED);
@@ -88,6 +87,7 @@ void OnTick()
     } else {
         // Больше двух ордеров
         //Print("Больше двух ордеров");
+        
     }
     
     ArrayCopy(countersOld, counters);
@@ -110,29 +110,28 @@ void CloseOpenOrders()
 //+------------------------------------------------------------------+
 void HandleOppositePosition(COrderInfo* order1, COrderInfo* order2)
 {
-    double sigma = NormalizeDouble(MathAbs(order1.GetOpenPrice() - order2.GetOpenPrice()), Digits);
     bool ordersIsBalanced = (order1.GetStopLoss() == order2.GetTakeProfit() || order2.GetStopLoss() == order1.GetTakeProfit());
     if (order1.IsPending() && order1.IsPending()) {
         // Два условных ордера, ни один не выполнился.
     } else if (!order1.IsPending() && order2.IsPending() && !ordersIsBalanced) {
         // Первый выполнился, второй передвигаем
         if (order1.IsBuy()) {
-            if (pTrade.SellStop(2*Lot, order1.GetOpenPrice()-TakeProfit*Point, NULL, order1.GetTakeProfit(), order1.GetStopLoss(), 0, NULL, order1.GetMagic())) {
+            if (pTrade.SellStop(2*Lot, order1.GetOpenPrice()-TakeProfit*Point, NULL, order1.GetTakeProfit()+Spred*Point, order1.GetStopLoss()-Spred*Point, 0, NULL, order1.GetMagic())) {
                 pTrade.Delete(order2);
             }
         } else if (order1.IsSell()) {
-            if (pTrade.BuyStop(2*Lot, order1.GetOpenPrice()+TakeProfit*Point, NULL, order1.GetTakeProfit(), order1.GetStopLoss(), 0, NULL, order1.GetMagic())) {
+            if (pTrade.BuyStop(2*Lot, order1.GetOpenPrice()+TakeProfit*Point, NULL, order1.GetTakeProfit()+Spred*Point, order1.GetStopLoss()+Spred*Point, 0, NULL, order1.GetMagic())) {
                 pTrade.Delete(order2);
             }
         }
     } else if (order1.IsPending() && !ordersIsBalanced) {
         // Второй выполнился, первый передвигаем
         if (order2.IsBuy()) {
-            if (pTrade.SellStop(2*Lot, order2.GetOpenPrice()-TakeProfit*Point, NULL, order2.GetTakeProfit(), order2.GetStopLoss(), 0, NULL, order2.GetMagic())) {
+            if (pTrade.SellStop(2*Lot, order2.GetOpenPrice()-TakeProfit*Point, NULL, order2.GetTakeProfit()+Spred*Point, order2.GetStopLoss()-Spred*Point, 0, NULL, order2.GetMagic())) {
                 pTrade.Delete(order1);
             }
         } else if (order2.IsSell()) {
-            if (pTrade.BuyStop(2*Lot, order2.GetOpenPrice()+TakeProfit*Point, NULL, order2.GetTakeProfit(), order2.GetStopLoss(), 0, NULL, order2.GetMagic())) {
+            if (pTrade.BuyStop(2*Lot, order2.GetOpenPrice()+TakeProfit*Point, NULL, order2.GetTakeProfit()+Spred*Point, order2.GetStopLoss()+Spred*Point, 0, NULL, order2.GetMagic())) {
                 pTrade.Delete(order1);
             }
         }
@@ -140,9 +139,9 @@ void HandleOppositePosition(COrderInfo* order1, COrderInfo* order2)
         Print("Оба ордера выполнились");
         // Оба выполнились
         if (order1.IsBuy() && order2.IsSell()) {
-            pTrade.BuyStop(3*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit(), 0, NULL, order1.GetMagic());
+            pTrade.BuyStop(3*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss()+Spred*Point, order1.GetTakeProfit()+Spred*Point, 0, NULL, order1.GetMagic());
         } else if (order1.IsSell() && order2.IsBuy()) {
-            pTrade.SellStop(3*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit(), 0, NULL, order1.GetMagic());
+            pTrade.SellStop(3*Lot, order1.GetOpenPrice(), NULL, order1.GetStopLoss()+Spred*Point, order1.GetTakeProfit()-Spred*Point, 0, NULL, order1.GetMagic());
         } else {
             // Сюда мы не должны попадать
         }
@@ -157,18 +156,18 @@ void HandleSinglePosition(COrderInfo* order)
 {
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
-            pTrade.Sell(Lot, Bid, NULL, Ask+StopLoss*Point, Ask-TakeProfit*Point, NULL, 2);   
-            pTrade.BuyStop(2*Lot, Bid+TakeProfit*Point, NULL, Ask-TakeProfit*Point, Ask+StopLoss*Point, 0, NULL, 2);   
+            pTrade.Sell(Lot, Bid, NULL, Bid+(StopLoss+2*Spred)*Point, Bid-(TakeProfit+Spred)*Point, NULL, 2);   
+            pTrade.BuyStop(2*Lot, Bid+(TakeProfit+Spred)*Point, NULL, Bid-(TakeProfit+Spred)*Point, Bid+(StopLoss+2*Spred)*Point, 0, NULL, 2);   
         } else if(order.GetType() == OP_SELLSTOP) {
-            pTrade.Buy(Lot, Ask, NULL, Bid-TakeProfit*Point, Bid+StopLoss*Point, NULL, 1);
-            pTrade.SellStop(2*Lot, Ask-TakeProfit*Point, NULL, Bid+TakeProfit*Point, Bid-StopLoss*Point, 0, NULL, 1);   
+            pTrade.Buy(Lot, Ask, NULL, Ask-(StopLoss+2*Spred)*Point, Ask+(TakeProfit+Spred)*Point, NULL, 1);
+            pTrade.SellStop(2*Lot, Ask-(TakeProfit+Spred)*Point, NULL, Ask+(TakeProfit+Spred)*Point, Ask-(StopLoss+2*Spred)*Point, 0, NULL, 1);   
         }    
         pTrade.Delete(order);
     } else {
         if (order.GetType() == OP_BUY) {
-            pTrade.SellStop(2*Lot, order.GetOpenPrice()-TakeProfit*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
+            pTrade.SellStop(2*Lot, order.GetOpenPrice()-TakeProfit*Point, NULL, order.GetTakeProfit()+Spred*Point, order.GetStopLoss()-Spred*Point, 0, NULL, order.GetMagic());  
         } else { // OP_SELL
-            pTrade.BuyStop(2*Lot, order.GetOpenPrice()+TakeProfit*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
+            pTrade.BuyStop(2*Lot, order.GetOpenPrice()+TakeProfit*Point, NULL, order.GetTakeProfit()+Spred*Point, order.GetStopLoss()+Spred*Point, 0, NULL, order.GetMagic());  
         }
     }
 }
@@ -178,9 +177,8 @@ void HandleSinglePosition(COrderInfo* order)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    double price = Bid;
-    pTrade.BuyStop(Lot, price+TakeProfit*Point, NULL, price-2*TakeProfit*Point, price+StopLoss*Point, 0, NULL, 1);
-    pTrade.SellStop(Lot, price-TakeProfit*Point, NULL, price+2*TakeProfit*Point, price-StopLoss*Point, 0, NULL, 2);
+    pTrade.BuyStop(Lot, Ask+50*Point, NULL, Ask-(100+2*Spred)*Point, Ask+(100+Spred)*Point, 0, NULL, 1);
+    pTrade.SellStop(Lot, Bid-50*Point, NULL, Bid+(100+2*Spred)*Point, Bid-(100+Spred)*Point, 0, NULL, 2);
 }
 
 //+------------------------------------------------------------------+
