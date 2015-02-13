@@ -71,7 +71,12 @@ void OnTick()
     COrderInfo* lastBuy;
 
     pOrderQueue.Update();
+    
     orderList = pOrderQueue.GetList();
+    
+    //if (pOrderQueue.IsSeriesEnded()) {
+    //    Print("Серия закрылась");
+    //}
 
     switch(orderList.Total()) {
         case 0:
@@ -164,10 +169,10 @@ void HandleSinglePosition(COrderInfo* order)
 
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
-            pTrade.Sell(Lot, Bid, NULL, Bid+StopLoss*Point, Bid-TakeProfit*Point, NULL, 2);
+            pTrade.Sell(Lot, Bid, NULL, Bid+(StopLoss+TakeProfit)*Point, Bid-TakeProfit*Point, NULL, 2);
 //            pTrade.BuyStop(GetRevertLotSize(OP_BUY, 0, Lot), order.GetOpenPrice()+StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
         } else if(order.GetType() == OP_SELLSTOP) {
-            pTrade.Buy(Lot, Ask, NULL, Ask-StopLoss*Point, Ask+TakeProfit*Point, NULL, 1);
+            pTrade.Buy(Lot, Ask, NULL, Ask-(StopLoss+TakeProfit)*Point, Ask+TakeProfit*Point, NULL, 1);
 //            pTrade.SellStop(GetRevertLotSize(OP_SELL, Lot, 0), order.GetOpenPrice()-StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
         }    
         pTrade.Delete(order);
@@ -205,11 +210,16 @@ double GetRevertLotSize(int op, double sellSize, double buySize)
     double size;
     if (sellSize > buySize) {
         size = (sellSize*(M+1)*TakeProfit - buySize*TakeProfit + (buySize+sellSize)*Spred)/(TakeProfit - Spred);
-    } else if (buySize < sellSize) {
+    } else if (sellSize < buySize) {
         size = (buySize*(M+1)*TakeProfit - sellSize*TakeProfit + (buySize+sellSize)*Spred)/(TakeProfit - Spred);
     } else {
         Print("Ошибка: Равные объемы проданных и купленных ордеров при расчете размера реверсивной позиции: "+buySize+", "+sellSize);
     }
-    return NormalizeDouble(size, 2);
+    size = NormalizeDouble(size, 2);
+//    if (size == 0.01) {
+//        size += 0.01;
+//    }
+    size += 0.01;
+    return size;
 }
 
