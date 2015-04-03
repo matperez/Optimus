@@ -5,8 +5,7 @@ ehthumbs.db
 # Folder config file
 Desktop.ini
 
-Expert.ex4
-QueueTest.ex4
+*.ex4
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
