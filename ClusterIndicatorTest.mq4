@@ -13,7 +13,7 @@
 
 //--- input parameters
 input int      gPricePeriod = 1000;
-input int      gTimePeriod = 48600;
+input int      gTimePeriod = 600;
 input int      gClusterCount = 100;
 input int      gTimer = 60;
 
@@ -24,11 +24,17 @@ CSymbolInfo *pSymbol;
 //+------------------------------------------------------------------+
 int OnInit()
 {
+    int clusters[];
     Print("OnInit");
     EventSetTimer(gTimer);
     pSymbol = new CSymbolInfo();
     pSymbol.Name(_Symbol); 
     pClusterIndicator = new CClusterIndicator(pSymbol, gTimePeriod, gPricePeriod, gClusterCount);
+    ArrayResize(clusters, gClusterCount*2);
+    pClusterIndicator.GetClusters(clusters);
+    for(int i=0; i < gClusterCount*2; i++) {
+        Print(i, ": ", clusters[i], ", ");
+    }
     return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -36,7 +42,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    EventKillTimer();
+//    EventKillTimer();
     delete pSymbol;
     delete pClusterIndicator;
 }
@@ -58,9 +64,9 @@ void OnTimer()
     int clusters[];
     ArrayResize(clusters, gClusterCount*2);
     pClusterIndicator.GetClusters(clusters);
-    for(int i=0; i < gClusterCount*2; i++) {
-        Print(i, ": ", clusters[i], ", ");
-    }
+//    for(int i=0; i < gClusterCount*2; i++) {
+//        Print(i, ": ", clusters[i], ", ");
+//    }
    
 }
 //+------------------------------------------------------------------+

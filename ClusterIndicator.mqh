@@ -95,20 +95,29 @@ CClusterIndicator::Update()
     double high, low, max, min, current, clusterSize;
     ArrayFill(m_clusters, 0, m_cluster_count*2, 0);
     barCount = GetBarCount();
-    current = m_symbol.Ask();
+    Print("bar count: ", barCount);
+    // текущая цена
+    current = Ask;
+    Print("current: ", current, ", price period: ", m_price_period);
+    // верхняя и нижняя границы диапазона рассчета
     max = current + m_price_period * Point;
     min = current - m_price_period * Point;
-    clusterSize = (max - min)/m_cluster_count/2;
-    for(i = barCount; i > 0; i--) {
+    Print("min: ", min, ", max: ", max);
+    // размер кластера
+    clusterSize = (max - min)/(2*m_cluster_count);
+    Print("cluster size: ", clusterSize);
+    for(i = 0; i < barCount; i++) {
+        // верхняя и нижняя границы текущего бара
         high = iHigh(m_symbol.Name(), m_time_frame, i);
         low = iLow(m_symbol.Name(), m_time_frame, i);
-        if (high < min || low > max) {
-            continue;
-        }
-        jMax = MathRound((high - current)/clusterSize);
-        jMin = MathRound((low - current)/clusterSize);
-        for (j = jMin; j < jMax; j++) {
-            m_clusters[j]++;
+        // если бар находится за границей нашего диапазона
+        if (low <= max && high >= min ) {
+            jMax = MathRound((high - min)/clusterSize);
+            jMin = MathRound((low - min)/clusterSize);
+//            Print("j-min: ", jMin, ", j-max: ", jMax);
+            for (j = jMin; j < jMax; j++) {
+                m_clusters[j]++;
+            }
         }
     }
 }
