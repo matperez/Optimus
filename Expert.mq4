@@ -170,14 +170,11 @@ void HandleSinglePosition(COrderInfo* order)
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
             pTrade.Sell(Lot, Bid, NULL, Bid+(StopLoss+TakeProfit)*Point, Bid-TakeProfit*Point, NULL, 2);
-//            pTrade.BuyStop(GetRevertLotSize(OP_BUY, 0, Lot), order.GetOpenPrice()+StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
         } else if(order.GetType() == OP_SELLSTOP) {
             pTrade.Buy(Lot, Ask, NULL, Ask-(StopLoss+TakeProfit)*Point, Ask+TakeProfit*Point, NULL, 1);
-//            pTrade.SellStop(GetRevertLotSize(OP_SELL, Lot, 0), order.GetOpenPrice()-StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic());  
         }    
         pTrade.Delete(order);
     } else {
-//        Print("Количество ордеров ", pOrderQueue.GetList().Total(), "Тип ордера", order.GetType());
         if (order.GetType() == OP_BUY) {
             if(!pTrade.SellStop(GetRevertLotSize(OP_SELL, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), order.GetOpenPrice()-StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic())) {
                 Print("Ошибка размещения отложенного ордера на продажу: "+pTrade.GetMessage());
@@ -197,8 +194,8 @@ void HandleSinglePosition(COrderInfo* order)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    pTrade.BuyStop(Lot, Ask+100*Point, NULL, Ask-(StopLoss+TakeProfit+100)*Point, Ask+(TakeProfit+100)*Point, 0, NULL, 1);
-    pTrade.SellStop(Lot, Bid-100*Point, NULL, Bid+(StopLoss+TakeProfit+100)*Point, Bid-(TakeProfit+100)*Point, 0, NULL, 2);
+    pTrade.BuyStop(Lot, Ask+100*Point, NULL, 0, Ask+(TakeProfit+100)*Point, 0, NULL, 1);
+    pTrade.SellStop(Lot, Bid-100*Point, NULL, 0, Bid-(TakeProfit+100)*Point, 0, NULL, 2);
 }
 
 
