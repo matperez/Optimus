@@ -29,6 +29,7 @@ protected:
 public:
                      COrderInfo(void);
                     ~COrderInfo(void);
+   bool              SetStopLoss(float value);
    bool              IsPending(void) { return !(m_type == OP_BUY || m_type == OP_SELL); }
    double            GetVolume(void) { return m_volume_curr; }
    bool              IsBuy(void);
@@ -104,6 +105,14 @@ COrderInfo::COrderInfo(void) : m_ticket(ULONG_MAX),
 COrderInfo::~COrderInfo(void)
   {
   }
+//+------------------------------------------------------------------+
+//| Set stop loss                                                    |
+//+------------------------------------------------------------------+
+bool COrderInfo::SetStopLoss(float value)
+{
+//bool res=OrderModify(OrderTicket(),OrderOpenPrice(),NormalizeDouble(Bid-Point*TrailingStop,Digits),OrderTakeProfit(),0,Blue);
+    return OrderModify(m_ticket, m_open_price, NormalizeDouble(value, Digits), m_take_profit, m_expiration, Blue);
+}
 
 bool COrderInfo::IsBuy(void)
 {

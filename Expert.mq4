@@ -31,6 +31,10 @@ CSymbolInfo *pSymbol;
 
 COrderQueue* pOrderQueue;
 
+// максимальное расстояние между текущей 
+// ценой и ценой открытия ордера
+float maximumPriceDifference = 0;
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -74,9 +78,9 @@ void OnTick()
     
     orderList = pOrderQueue.GetList();
     
-    //if (pOrderQueue.IsSeriesEnded()) {
-    //    Print("Серия закрылась");
-    //}
+    if (pOrderQueue.IsSeriesEnded()) {
+        ThrowError("Серия закрылась");
+    }
 
     switch(orderList.Total()) {
         case 0:
@@ -166,7 +170,6 @@ void HandleOppositePosition(COrderInfo* order1, COrderInfo* order2)
 //+------------------------------------------------------------------+
 void HandleSinglePosition(COrderInfo* order)
 {
-
     if (order.IsPending()) {
         if (order.GetType() == OP_BUYSTOP) {
             pTrade.Sell(Lot, Bid, NULL, Bid+(StopLoss+TakeProfit)*Point, Bid-TakeProfit*Point, NULL, 2);
@@ -174,21 +177,61 @@ void HandleSinglePosition(COrderInfo* order)
             pTrade.Buy(Lot, Ask, NULL, Ask-(StopLoss+TakeProfit)*Point, Ask+TakeProfit*Point, NULL, 1);
         }    
         pTrade.Delete(order);
+        maximumPriceDifference = 0;
     } else {
-        if (order.GetType() == OP_BUY) {
-            if(!pTrade.SellStop(GetRevertLotSize(OP_SELL, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), order.GetOpenPrice()-StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic())) {
-                Print("Ошибка размещения отложенного ордера на продажу: "+pTrade.GetMessage());
-                Print("Объем: "+GetRevertLotSize(OP_SELL, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()));
-            }
-        } else { // OP_SELL
-            if(!pTrade.BuyStop(GetRevertLotSize(OP_BUY, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), order.GetOpenPrice()+StopLoss*Point, NULL, order.GetTakeProfit(), order.GetStopLoss(), 0, NULL, order.GetMagic())) {
-                Print("Ошибка размещения отложенного ордера на покупку: "+pTrade.GetMessage());
-                Print("Объем: "+GetRevertLotSize(OP_BUY, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()));
+        maximumPriceDifference = GetCurrentPriceDifference(order);
+        if (PriceHasReachedTheGoal(order) && PriceHasComeBack(order) && GetCurrentPriceDifference(order) >= M*TakeProfit*Point) {
+            if (order.GetType() == OP_BUY) {
+                pTrade.Sell(GetRevertLotSize(OP_SELL, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-TakeProfit*Point, NULL, order.GetMagic());
+                if (!order.SetStopLoss(Bid-TakeProfit*Point)) {
+                    ThrowError("Ошибка модификации уровня стоп-лосс");
+                }
+            } else { // OP_SELL
+                pTrade.Buy(GetRevertLotSize(OP_BUY, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), Ask, NULL, order.GetTakeProfit(), Ask+TakeProfit*Point, NULL, order.GetMagic());
+                if (!order.SetStopLoss(Ask+TakeProfit*Point)) {
+                    ThrowError("Ошибка модификации уровня стоп-лосс");
+                }
             }
         }
     }
 }
-
+//+------------------------------------------------------------------+
+//| Check that current price has already reached the goal (channel+tp)    |
+//+------------------------------------------------------------------+
+bool PriceHasReachedTheGoal(COrderInfo* order)
+{
+    if (order.IsPending()) {
+        ThrowError("Попытка проверить присутствие текущей цены в канале для отложенного ордера");
+    }
+    return maximumPriceDifference > (M + 1) * TakeProfit * Point;
+}
+//+----------------------------------------------------------------------+
+//| Check that current price has come back (closer than peak price - tp) |
+//+----------------------------------------------------------------------+
+bool PriceHasComeBack(COrderInfo* order)
+{
+    GetCurrentPriceDifference(order) < maximumPriceDifference - TakeProfit;
+    return true;
+}
+//+------------------------------------------------------------------+
+//| Return currenct price diffrence                                  |
+//+------------------------------------------------------------------+
+float GetCurrentPriceDifference(COrderInfo* order)
+{
+    if (order.IsPending()) {
+        ThrowError("Попытка проверить присутствие текущей цены в канале для отложенного ордера");
+    }
+    return MathAbs(Ask - order.GetOpenPrice());
+}
+//+------------------------------------------------------------------+
+//| Throw exception and stop                                         |
+//+------------------------------------------------------------------+
+void ThrowError(string error)
+{
+    Print("Error: ", error);
+    CSymbolInfo* pSI;
+    pSI.Refresh();
+}
 //+------------------------------------------------------------------+
 //| Open opposite positions on expert initialization                 |
 //+------------------------------------------------------------------+
