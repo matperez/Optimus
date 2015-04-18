@@ -177,10 +177,14 @@ void HandleSinglePosition(COrderInfo* order)
             pTrade.Buy(Lot, Ask, NULL, Ask-(StopLoss+TakeProfit)*Point, Ask+TakeProfit*Point, NULL, 1);
         }    
         pTrade.Delete(order);
-        maximumPriceDifference = 0;
     } else {
-        maximumPriceDifference = GetCurrentPriceDifference(order);
+        if (GetCurrentPriceDifference(order) > maximumPriceDifference) {
+            maximumPriceDifference = GetCurrentPriceDifference(order);
+            Print("Increased price difference: ", maximumPriceDifference);
+        }
         if (PriceHasReachedTheGoal(order) && PriceHasComeBack(order) && GetCurrentPriceDifference(order) >= M*TakeProfit*Point) {
+            maximumPriceDifference = 0;
+            Print("Nullified price difference");
             if (order.GetType() == OP_BUY) {
                 pTrade.Sell(GetRevertLotSize(OP_SELL, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-TakeProfit*Point, NULL, order.GetMagic());
                 if (!order.SetStopLoss(Bid-TakeProfit*Point)) {
@@ -237,8 +241,8 @@ void ThrowError(string error)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    pTrade.BuyStop(Lot, Ask+100*Point, NULL, 0, Ask+(TakeProfit+100)*Point, 0, NULL, 1);
-    pTrade.SellStop(Lot, Bid-100*Point, NULL, 0, Bid-(TakeProfit+100)*Point, 0, NULL, 2);
+    pTrade.Buy(Lot, Ask, NULL, 0, Ask+TakeProfit*Point, "OpenOppositePositions", 1);
+//    pTrade.SellStop(Lot, Bid-100*Point, NULL, 0, Bid-(TakeProfit+100)*Point, 0, NULL, 2);
 }
 
 
