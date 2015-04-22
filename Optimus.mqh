@@ -50,12 +50,12 @@ class Optimus : public CObject
          Optimus(int takeProfit, double multiplier, string symbol);
         ~Optimus();
         void SetState(states state);
-        void MakeStep();
+        void OnTick();
 };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Optimus::MakeStep(void)
+void Optimus::OnTick(void)
 {
     m_order_queue.Update();
     switch(m_state) {
