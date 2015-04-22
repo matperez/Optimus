@@ -45,6 +45,7 @@ class Optimus : public CObject
         
         void ThrowError(string message);
         void HandleInitialState();
+        void HandleTargetingState();
         
     public:
          Optimus(int takeProfit, double multiplier, string symbol);
@@ -62,8 +63,28 @@ void Optimus::OnTick(void)
         case STATE_INITIAL:
             HandleInitialState();
             break;
+        case STATE_TARGETING:
+            HandleTargetingState();
+            break;    
         default:
             ThrowError("Это поведение еще не описано");
+    }
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Optimus::HandleTargetingState()
+{
+    CList* list = m_order_queue.GetList();
+    int total = list.Total();
+    switch(total) {
+        case 0:
+            ThrowError("В состоянии прицеливания не применимо к пустой очереди");
+            break;
+        case 1:
+            break;    
+        default:
+            ThrowError("В состоянии прицеливания не может быть более одного ордера в очереди");    
     }
 }
 //+------------------------------------------------------------------+
