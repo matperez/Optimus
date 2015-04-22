@@ -42,8 +42,10 @@ class Optimus : public CObject
         CTrade* m_trade; // торгова€ сесси€
         CSymbolInfo* m_symbol; // данные валютной пары
         COrderQueue* m_order_queue; // очередь ордеров
+        double m_price_difference; // максимальное рассто€ние между текущей ценой и ценой открыти€ позиции в состо€нии прицеливани€
         
         void ThrowError(string message);
+        double GetRevertLotSize(int op, double sellSize, double buySize);
         void HandleInitialState();
         void HandleTargetingState();
         
@@ -76,13 +78,45 @@ void Optimus::OnTick(void)
 void Optimus::HandleTargetingState()
 {
     CList* list = m_order_queue.GetList();
+    COrderInfo* order;
     int total = list.Total();
+    double difference; // разница между текущей ценой и ценой ордера
+    double rollback = m_multiplier*m_take_profit*Point; // необходима€ величина отката
+    bool hasReachedTheGoal, hasComeBack;
+    double newStopLoss;
+    string comment;
     switch(total) {
         case 0:
             ThrowError("¬ состо€нии прицеливани€ не применимо к пустой очереди");
             break;
         case 1:
-            break;    
+            order = list.GetFirstNode();
+            if (order.IsPending()) {
+                ThrowError("¬ состо€нии прицеливани€ не должно быть отложенных ордеров.");
+                break;
+            }
+            difference = MathAbs(Ask - order.GetOpenPrice());
+            if (difference > m_price_difference) {
+                m_price_difference = difference;
+            }
+            hasReachedTheGoal = m_price_difference > (m_multiplier + 1) * m_take_profit * Point;
+            hasComeBack = difference < m_price_difference - m_take_profit;
+            if (hasReachedTheGoal && hasComeBack && difference >= m_multiplier*m_take_profit*Point) {
+                m_price_difference = 0;
+                comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
+                if (order.GetType() == OP_BUY) {
+                    m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
+                    newStopLoss = Bid-m_take_profit*Point;
+                } else {
+                    m_trade.Buy(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Ask, NULL, order.GetTakeProfit(), Ask+m_take_profit*Point, comment, order.GetMagic());
+                    newStopLoss = Ask+m_take_profit*Point;
+                }
+                if (!order.SetStopLoss((float)newStopLoss)) {
+                    ThrowError("ќшибка модификации уровн€ стоп-лосс");
+                }
+                SetState(STATE_TRADE);
+            }
+            break;
         default:
             ThrowError("¬ состо€нии прицеливани€ не может быть более одного ордера в очереди");    
     }
@@ -127,6 +161,22 @@ void Optimus::HandleInitialState()
         default:
             ThrowError("¬ состо€нии инициализации не может быть более двух ордеров в очереди.");
     }
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double Optimus::GetRevertLotSize(int op, double sellSize, double buySize)
+{
+    double size;
+    if (sellSize > buySize) {
+        size = (sellSize*(m_multiplier+1)*m_take_profit - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+    } else if (sellSize < buySize) {
+        size = (buySize*(m_multiplier+1)*m_take_profit - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+    } else {
+        ThrowError("ќшибка: –авные объемы проданных и купленных ордеров при расчете размера реверсивной позиции: "+(string)buySize+", "+(string)sellSize);
+    }
+    size = NormalizeDouble(size, 2) + 0.01;
+    return size;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
