@@ -111,7 +111,7 @@ COrderInfo::~COrderInfo(void)
 bool COrderInfo::SetStopLoss(float value)
 {
 //bool res=OrderModify(OrderTicket(),OrderOpenPrice(),NormalizeDouble(Bid-Point*TrailingStop,Digits),OrderTakeProfit(),0,Blue);
-    return OrderModify(m_ticket, m_open_price, NormalizeDouble(value, Digits), m_take_profit, m_expiration, Blue);
+    return OrderModify((int) m_ticket, m_open_price, NormalizeDouble(value, Digits), m_take_profit, m_expiration, Blue);
 }
 
 bool COrderInfo::IsBuy(void)
@@ -370,14 +370,14 @@ string COrderInfo::FormatPrice(string &str,const double price_order,const double
 //+------------------------------------------------------------------+
 bool COrderInfo::Select(void)
   {
-   return(OrderSelect(m_ticket, SELECT_BY_TICKET));
+   return(OrderSelect((int) m_ticket, SELECT_BY_TICKET));
   }
 //+------------------------------------------------------------------+
 //| Selecting a order to access                                      |
 //+------------------------------------------------------------------+
 bool COrderInfo::Select(const ulong ticket)
   {
-   if(OrderSelect(ticket, SELECT_BY_TICKET))
+   if(OrderSelect((int) ticket, SELECT_BY_TICKET))
      {
       m_ticket=ticket;
       StoreState();

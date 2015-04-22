@@ -22,6 +22,13 @@ input   int     Deviation = 10;
 input   int     Spred = 0;
 input   double  Delta = 1.05;
 
+enum states {
+    STATE_INITIAL = 0,
+    STATE_TRADE = 1,
+    STATE_CLOSE = 2
+};
+
+states state = STATE_INITIAL;
 
 double StopLoss;
 
@@ -49,7 +56,6 @@ int OnInit()
     pTrade.SetDeviation(Deviation);
 
     pOrderQueue = new COrderQueue();
-    
     
     StopLoss = TakeProfit*M;
     
@@ -152,7 +158,7 @@ void HandleOppositePosition(COrderInfo* order1, COrderInfo* order2)
         }
     } else if (!order1.IsPending() && !order2.IsPending()) {
         Print("Оба ордера выполнились");
-        Print("Размеры: "+pOrderQueue.GetSellSize()+", "+pOrderQueue.GetBuySize());
+        Print("Размеры: "+(string)pOrderQueue.GetSellSize()+", "+(string)pOrderQueue.GetBuySize());
         // Оба выполнились
         if (order1.IsBuy() && order2.IsSell()) {
             pTrade.BuyStop(GetRevertLotSize(OP_BUY, pOrderQueue.GetSellSize(), pOrderQueue.GetBuySize()), order1.GetOpenPrice(), NULL, order1.GetStopLoss(), order1.GetTakeProfit(), 0, NULL, order1.GetMagic());
@@ -241,8 +247,8 @@ void ThrowError(string error)
 //+------------------------------------------------------------------+
 void OpenOppositePositions()
 {
-    pTrade.Buy(Lot, Ask, NULL, 0, Ask+TakeProfit*Point, "OpenOppositePositions", 1);
-//    pTrade.SellStop(Lot, Bid-100*Point, NULL, 0, Bid-(TakeProfit+100)*Point, 0, NULL, 2);
+    pTrade.BuyStop(Lot, Ask+100*Point, NULL, 0, Ask+(TakeProfit+100)*Point, 0, "OpenOppositePositions", 1);
+    pTrade.SellStop(Lot, Bid-100*Point, NULL, 0, Bid-(TakeProfit+100)*Point, 0, "OpenOppositePositions", 2);
 }
 
 

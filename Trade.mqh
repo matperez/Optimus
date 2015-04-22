@@ -91,7 +91,7 @@ public:
     void    SetMagicNumber(const int magic) { m_magic=magic; }
     void    SetLogLevel(const ENUM_LOG_LEVELS log_level)   { m_log_level=log_level; }
     void    SetDeviation(const int deviation) { m_deviation = deviation; }
-    int     GetCode() { return m_result.code; }
+    int     GetCode() { return (int) m_result.code; }
     string  GetMessage() { return ErrorDescription(m_result.code); }
     bool    Buy(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="", const int magic = NULL);
     bool    Sell(const double volume,double price=0.0,const string symbol=NULL,const double sl=0.0,const double tp=0.0,const string comment="", const int magic = NULL);
@@ -118,17 +118,17 @@ bool CTrade::Delete(COrderInfo* order)
 {
     bool success;
     if (order.IsPending()) {
-        success = OrderDelete(order.GetTicket(), Orange);
+        success = OrderDelete((int) order.GetTicket(), Orange);
     } else {
-        success = OrderClose(order.GetTicket(), order.GetVolume(), order.IsBuy() ? Bid : Ask, m_deviation, Orange);
+        success = OrderClose((int) order.GetTicket(), order.GetVolume(), order.IsBuy() ? Bid : Ask, m_deviation, Orange);
     }
-    string info = "Order delete request: "+order.GetTicket()+". ";
+    string info = "Order delete request: "+(string) order.GetTicket()+". ";
     if (success) {
         info += "Successfull.";
     } else {
         int code = GetLastError();
         string description = ErrorDescription(code);
-        info += "Error: "+code+", Description: "+description;
+        info += "Error: "+(string) code+", Description: "+description;
     }
     if (m_log_level == LOG_LEVEL_ALL) {
         Print(info);
@@ -205,7 +205,7 @@ bool CTrade::PositionOpen(const string symbol,const ENUM_ORDER_TYPE order_type,c
     m_request.deviation = m_deviation;
     m_request.comment = comment;
     
-    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, 0, GetColor(m_request.type));
+    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, (int) m_request.deviation, m_request.sl, m_request.tp, m_request.comment, (int) m_request.magic, 0, GetColor(m_request.type));
 
     if (m_result.ticket < 0) {
         m_result.code = GetLastError();
@@ -255,7 +255,7 @@ bool CTrade::OrderOpen(const string symbol,const ENUM_ORDER_TYPE order_type,cons
     m_request.deviation = m_deviation;
 //--- action and return the result
 
-    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, m_request.deviation, m_request.sl, m_request.tp, m_request.comment, m_request.magic, m_request.expiration, GetColor(m_request.type));
+    m_result.ticket = OrderSend(m_request.symbol, m_request.type, m_request.volume, m_request.price, (int) m_request.deviation, m_request.sl, m_request.tp, m_request.comment, (int) m_request.magic, m_request.expiration, GetColor(m_request.type));
 
     if (m_result.ticket < 0) {
         m_result.code = GetLastError();
@@ -382,9 +382,9 @@ bool CTrade::Sell(const double volume,double price=0.0,const string symbol=NULL,
 string GetOrderInfo(MqlTradeRequest &request, MqlTradeResult &result)
 {
     string info = NewOrderTypeToString(request.type) + ". ";
-    info += "Price: "+request.price+", Deviation: "+request.deviation+", Volume: "+request.volume+", Stop Loss: "+request.sl+" ,Take Profit: "+request.tp+". ";
-    info += "Magic: "+request.magic+" ,Comment: "+request.comment+". ";
-    info += "Ticket: "+result.ticket+", Error: "+result.code+", Description: "+result.comment+". ";    
+    info += "Price: "+(string) request.price+", Deviation: "+(string) request.deviation+", Volume: "+(string) request.volume+", Stop Loss: "+(string) request.sl+" ,Take Profit: "+(string) request.tp+". ";
+    info += "Magic: "+(string) request.magic+" ,Comment: "+request.comment+". ";
+    info += "Ticket: "+(string) result.ticket+", Error: "+(string) result.code+", Description: "+result.comment+". ";    
     return info; 
 }
 //+------------------------------------------------------------------+

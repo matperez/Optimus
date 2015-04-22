@@ -129,7 +129,7 @@ public:
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
 //+------------------------------------------------------------------+
-CSymbolInfo::CSymbolInfo(void) : m_name(""),
+CSymbolInfo::CSymbolInfo() : m_name(""),
                                  m_point(0.0),
                                  m_tick_value(0.0),
                                  m_tick_size(0.0),
