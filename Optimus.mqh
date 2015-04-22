@@ -69,7 +69,7 @@ void Optimus::OnTick(void)
             HandleTargetingState();
             break;    
         default:
-            ThrowError("Ёто поведение еще не описано");
+            ThrowError("Ёто состо€ние еще не описано");
     }
 }
 //+------------------------------------------------------------------+
@@ -87,7 +87,7 @@ void Optimus::HandleTargetingState()
     string comment;
     switch(total) {
         case 0:
-            ThrowError("¬ состо€нии прицеливани€ не применимо к пустой очереди");
+            SetState(STATE_CLOSE);
             break;
         case 1:
             order = list.GetFirstNode();
@@ -154,7 +154,7 @@ void Optimus::HandleInitialState()
                 m_trade.Delete(second);
             }
             if (!second.IsPending()) {
-                m_trade.Delete(second);
+                m_trade.Delete(first);
             }
             SetState(STATE_TARGETING);
             break;
@@ -184,6 +184,22 @@ double Optimus::GetRevertLotSize(int op, double sellSize, double buySize)
 void Optimus::SetState(states state)
 {
     m_state = state;
+    switch(m_state) {
+        case STATE_INITIAL:
+            Print("ѕереход в состо€ние инициализации");
+            break;
+        case STATE_TARGETING:
+            Print("ѕереход в состо€ние прицеливани€");
+            break;
+        case STATE_TRADE:
+            Print("ѕереход в состо€ние торговли");
+            break;
+        case STATE_CLOSE:
+            Print("ѕереход в состо€ние завершенной торговли");
+            break;
+        default:
+            ThrowError("Ќеизвестное состо€ние");
+    }
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -201,8 +217,7 @@ Optimus::Optimus(int takeProfit, double multiplier, string symbol):
     m_delta(1.05),
     m_spread(0),
     m_deviation(10),
-    m_base_size(0.01),
-    m_state(STATE_INITIAL)
+    m_base_size(0.01)
 {
     m_take_profit = takeProfit;
     m_multiplier = multiplier;
@@ -217,6 +232,7 @@ Optimus::Optimus(int takeProfit, double multiplier, string symbol):
     
     m_order_queue = new COrderQueue();
 
+    SetState(STATE_INITIAL);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
