@@ -14,16 +14,20 @@
 #include "OrderQueue.mqh"
 #include <Arrays\List.mqh>
 
-input   int     TakeProfit = 350;
+//input   int     TakeProfit = 350;
 //input   int     StopLoss = 700;
 input   double  M = 2; // отношение SL/TP
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 input   int     Spred = 0;
 input   double  Delta = 1.05;
+input   int     jmax  = 24;
+input   double  koeff = 1;
 
 
 double StopLoss;
+double AverageCandle;
+double TakeProfit;
 
 CTrade *pTrade;
 
@@ -77,7 +81,24 @@ void OnTick()
     //if (pOrderQueue.IsSeriesEnded()) {
     //    Print("Серия закрылась");
     //}
-
+    double summa=0;
+    double j;
+    for(j=1;j<=jmax;j++)
+    {
+      summa=summa+iHigh(NULL,PERIOD_H1,j)-iLow(NULL,PERIOD_H1,j);  
+    }
+    AverageCandle=NormalizeDouble(summa/jmax,Digits);
+    
+    if(AverageCandle>100*Point && AverageCandle<500*Point)
+    {
+      TakeProfit=MathRound(AverageCandle/Point);
+    }
+    else
+    {
+      TakeProfit=100;
+    }  
+    StopLoss=TakeProfit*koeff;
+      
     switch(orderList.Total()) {
         case 0:
             OpenOppositePositions();
