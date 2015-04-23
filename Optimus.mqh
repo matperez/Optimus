@@ -48,6 +48,8 @@ class Optimus : public CObject
         double GetRevertLotSize(int op, double sellSize, double buySize);
         void HandleInitialState();
         void HandleTargetingState();
+        void HandleTradingState();
+        void HandleCloseState();
         
     public:
          Optimus(int takeProfit, double multiplier, string symbol);
@@ -68,8 +70,51 @@ void Optimus::OnTick(void)
         case STATE_TARGETING:
             HandleTargetingState();
             break;    
+        case STATE_TRADE:
+            HandleTradingState();
+            break;  
+        case STATE_CLOSE:
+            HandleCloseState();
+            break;  
         default:
             ThrowError("Это состояние еще не описано");
+    }
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Optimus::HandleCloseState()
+{
+    SetState(STATE_INITIAL);
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Optimus::HandleTradingState()
+{
+    COrderInfo* lastSell;
+    COrderInfo* lastBuy;
+    int total;
+    
+    total = m_order_queue.GetList().Total();
+    
+    switch(total) {
+        case 0:
+            SetState(STATE_CLOSE);
+            break;
+        case 1:
+            ThrowError("В состоянии торговли не может быть менее двух ордеров в очереди");    
+        default:
+            lastSell = m_order_queue.GetLastSell();
+            lastBuy = m_order_queue.GetLastBuy();
+        
+            if (lastSell && lastBuy && !m_order_queue.HasPendingOrders()) {
+                if (lastSell.GetOpenTime() > lastBuy.GetOpenTime()) {
+                    m_trade.BuyStop(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), lastBuy.GetOpenPrice(), NULL, lastSell.GetTakeProfit(), lastSell.GetStopLoss(), 0, NULL, lastBuy.GetMagic());
+                } else {
+                    m_trade.SellStop(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), lastSell.GetOpenPrice(), NULL, lastBuy.GetTakeProfit(), lastBuy.GetStopLoss(), 0, NULL, lastSell.GetMagic());
+                }
+            }
     }
 }
 //+------------------------------------------------------------------+
