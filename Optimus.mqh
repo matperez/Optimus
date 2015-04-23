@@ -42,7 +42,7 @@ class Optimus : public CObject
         CTrade* m_trade; // торговая сессия
         CSymbolInfo* m_symbol; // данные валютной пары
         COrderQueue* m_order_queue; // очередь ордеров
-        double m_price_difference; // максимальное расстояние между текущей ценой и ценой открытия позиции в состоянии прицеливания
+        double m_max_price_difference; // максимальное расстояние между текущей ценой и ценой открытия позиции в состоянии прицеливания
         
         void ThrowError(string message);
         double GetRevertLotSize(int op, double sellSize, double buySize);
@@ -50,6 +50,7 @@ class Optimus : public CObject
         void HandleTargetingState();
         void HandleTradingState();
         void HandleCloseState();
+        void CloseAll();
         
     public:
          Optimus(int takeProfit, double multiplier, string symbol);
@@ -83,14 +84,52 @@ void Optimus::OnTick(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+void Optimus::CloseAll()
+{
+    COrderInfo* order; 
+        
+    for(int i = 0; i < m_order_queue.GetList().Total(); i++) {
+        order = m_order_queue.GetList().GetNodeAtIndex(i);
+        if (!order.IsPending()) {
+            m_trade.Delete(order);
+        }
+    }
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void Optimus::HandleCloseState()
 {
     int total;
-    total = m_order_queue.GetList().Total();
-    if (total > 0) {
-        ThrowError("В состоянии завершения очередь ордеров должна быть пуста.");
+    string comment;
+    COrderInfo* order;
+    CList* list;
+    list = m_order_queue.GetList();
+    total = list.Total();
+    switch(total) {
+        case 0:
+            SetState(STATE_INITIAL);
+        case 1:
+            order = list.GetFirstNode();
+            if (order == NULL) {
+                SetState(STATE_INITIAL);
+                break;
+            }
+            if (!order.IsPending()) {
+                ThrowError("В состоянии завершения в очереди не должно быть открытых ордеров.");
+            }
+            comment = __FUNCTION__+": новый ордер по рынку в направлении закрытой сделки";
+            if (order.GetType() == OP_BUYSTOP) {
+                m_trade.Sell(m_base_size, Bid, NULL, 0, Bid - m_take_profit*Point, comment, 2);
+            } else {
+                m_trade.Buy(m_base_size, Ask, NULL, 0, Ask + m_take_profit*Point, comment, 1);
+            }
+            m_trade.Delete(order);
+            SetState(STATE_TARGETING);
+            break;
+        default: 
+            ThrowError("В состоянии завершения в очереди должно оставаться не более одного ордера.");
     }
-    SetState(STATE_INITIAL);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -108,7 +147,9 @@ void Optimus::HandleTradingState()
             SetState(STATE_CLOSE);
             break;
         case 1:
-            ThrowError("В состоянии торговли не может быть менее двух ордеров в очереди");    
+            SetState(STATE_CLOSE);
+//            ThrowError("В состоянии торговли не может быть менее двух ордеров в очереди");
+            break;    
         default:
             lastSell = m_order_queue.GetLastSell();
             lastBuy = m_order_queue.GetLastBuy();
@@ -131,7 +172,7 @@ void Optimus::HandleTargetingState()
     COrderInfo* order;
     int total = list.Total();
     double difference; // разница между текущей ценой и ценой ордера
-    double rollback = m_multiplier*m_take_profit*Point; // необходимая величина отката
+    double rollback = m_multiplier*m_take_profit*Point; // необходимая величина отката (ширина канала)
     bool hasReachedTheGoal, hasComeBack;
     double newStopLoss;
     string comment;
@@ -145,20 +186,13 @@ void Optimus::HandleTargetingState()
                 ThrowError("В состоянии прицеливания не должно быть отложенных ордеров.");
                 break;
             }
-            // если прошло более двух дней со времени открытия ордера
-            if (TimeSeconds(order.GetOpenTime()) > 172800)
-            {
-                m_trade.Delete(order);
-                SetState(STATE_CLOSE);
-            }
             difference = MathAbs(Ask - order.GetOpenPrice());
-            if (difference > m_price_difference) {
-                m_price_difference = difference;
+            if (difference > m_max_price_difference) {
+                m_max_price_difference = difference;
             }
-            hasReachedTheGoal = m_price_difference > (m_multiplier + 1) * m_take_profit * Point;
-            hasComeBack = difference < m_price_difference - m_take_profit;
-            if (hasReachedTheGoal && hasComeBack && difference >= m_multiplier*m_take_profit*Point) {
-                m_price_difference = 0;
+            hasReachedTheGoal = m_max_price_difference > ((m_multiplier + 1) * m_take_profit * Point);
+            hasComeBack = difference < m_max_price_difference - m_take_profit*Point;
+            if (hasReachedTheGoal && hasComeBack && difference >= rollback) {
                 comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
                 if (order.GetType() == OP_BUY) {
                     m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
@@ -170,6 +204,7 @@ void Optimus::HandleTargetingState()
                 if (!order.SetStopLoss((float)newStopLoss)) {
                     ThrowError("Ошибка модификации уровня стоп-лосс");
                 }
+                m_max_price_difference = 0;
                 SetState(STATE_TRADE);
             }
             break;
