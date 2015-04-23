@@ -85,6 +85,11 @@ void Optimus::OnTick(void)
 //+------------------------------------------------------------------+
 void Optimus::HandleCloseState()
 {
+    int total;
+    total = m_order_queue.GetList().Total();
+    if (total > 0) {
+        ThrowError("В состоянии завершения очередь ордеров должна быть пуста.");
+    }
     SetState(STATE_INITIAL);
 }
 //+------------------------------------------------------------------+
@@ -139,6 +144,12 @@ void Optimus::HandleTargetingState()
             if (order.IsPending()) {
                 ThrowError("В состоянии прицеливания не должно быть отложенных ордеров.");
                 break;
+            }
+            // если прошло более двух дней со времени открытия ордера
+            if (TimeSeconds(order.GetOpenTime()) > 172800)
+            {
+                m_trade.Delete(order);
+                SetState(STATE_CLOSE);
             }
             difference = MathAbs(Ask - order.GetOpenPrice());
             if (difference > m_price_difference) {
