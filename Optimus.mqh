@@ -127,7 +127,9 @@ void Optimus::HandleCloseState()
                 break;
             }
             if (!order.IsPending()) {
-                ThrowError("В состоянии завершения в очереди не должно быть открытых ордеров.");
+                Print("В состоянии завершения в очереди не должно быть открытых ордеров, однако, один все-таки затесался.");
+                SetState(STATE_TARGETING);
+                break;
             }
             comment = __FUNCTION__+": новый ордер по рынку в направлении закрытой сделки";
             if (order.GetType() == OP_BUYSTOP) {
