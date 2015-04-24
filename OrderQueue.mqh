@@ -37,6 +37,7 @@ private:
     
     COrderInfo* m_last_buy;
     COrderInfo* m_last_sell;
+    COrderInfo* m_last_open;
     
     CList* m_pOrderList;
     
@@ -57,6 +58,7 @@ public:
     
     COrderInfo* GetLastBuy();
     COrderInfo* GetLastSell();
+    COrderInfo* GetLastOpen() {return m_last_open; };
     
     int GetTotalSell();
     int GetTotalBuy();
@@ -183,6 +185,7 @@ void COrderQueue::Update()
     
     m_last_buy = NULL;
     m_last_sell = NULL;
+    m_last_open = NULL;
     
     ArrayCopy(m_counters_old, m_counters);
     
@@ -207,6 +210,12 @@ void COrderQueue::Update()
             } else if (order.GetType() == OP_BUYSTOP) {
                 m_total_buy_stop += 1;
                 m_buy_stop_size += order.GetVolume();
+            }
+            
+            if (!order.IsPending()) {
+                if (m_last_open == NULL || TimeSeconds(order.GetOpenTime()) < TimeSeconds(m_last_open.GetOpenTime())) {
+                    m_last_open = order;
+                }
             }
 
             if (!order.IsPending()) {
