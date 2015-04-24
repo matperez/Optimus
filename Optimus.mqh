@@ -161,9 +161,11 @@ void Optimus::HandleTradingState()
     
     switch(total) {
         case 0:
+            Print("В состоянии торговли не осталось ордеров в очереди.");
             SetState(STATE_CLOSE);
             break;
         case 1:
+            Print("В состоянии торговли остался один ордер в очереди.");
             SetState(STATE_CLOSE);
 //            ThrowError("В состоянии торговли не может быть менее двух ордеров в очереди");
             break;    
