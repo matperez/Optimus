@@ -42,6 +42,7 @@ class Optimus : public CObject
         CTrade* m_trade; // торговая сессия
         CSymbolInfo* m_symbol; // данные валютной пары
         COrderQueue* m_order_queue; // очередь ордеров
+        int m_last_open_type;
         double m_max_price_difference; // максимальное расстояние между текущей ценой и ценой открытия позиции в состоянии прицеливания
         
         void ThrowError(string message);
@@ -108,7 +109,17 @@ void Optimus::HandleCloseState()
     total = list.Total();
     switch(total) {
         case 0:
-            SetState(STATE_INITIAL);
+            if (m_last_open_type == OP_SELL || m_last_open_type == OP_BUY) {
+                if (m_last_open_type == OP_BUY) {
+                    m_trade.Buy(m_base_size, Ask, NULL, 0, Ask + m_take_profit*Point, comment, 1);
+                } else {
+                    m_trade.Sell(m_base_size, Bid, NULL, 0, Bid - m_take_profit*Point, comment, 2);
+                }
+                SetState(STATE_TARGETING);
+            } else {
+                SetState(STATE_INITIAL);
+            }
+            break;
         case 1:
             order = list.GetFirstNode();
             if (order == NULL) {
@@ -130,6 +141,7 @@ void Optimus::HandleCloseState()
         default: 
             ThrowError("В состоянии завершения в очереди должно оставаться не более одного ордера.");
     }
+    m_last_open_type = NULL;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -140,6 +152,11 @@ void Optimus::HandleTradingState()
     COrderInfo* lastBuy;
     int total;
     
+    
+    if (m_order_queue.GetLastOpen() != NULL) {
+        m_last_open_type = m_order_queue.GetLastOpen().GetType();
+    }
+
     total = m_order_queue.GetList().Total();
     
     switch(total) {
@@ -176,6 +193,11 @@ void Optimus::HandleTargetingState()
     bool hasReachedTheGoal, hasComeBack;
     double newStopLoss;
     string comment;
+    
+    if (m_order_queue.GetLastOpen() != NULL) {
+        m_last_open_type = m_order_queue.GetLastOpen().GetType();
+    }
+    
     switch(total) {
         case 0:
             SetState(STATE_CLOSE);
