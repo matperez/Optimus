@@ -37,7 +37,7 @@ class Optimus : public CObject
         double m_base_size; // базовый объем для торговли
         int m_deviation; // допустимое отклонение при выполнении ордера
         int m_spread; // спред (используется для расчетов)
-        double m_delta; // ???
+        double m_delta; // добавочная коэффициент к величине отката при прицеливании
         states m_state; // состояние
         CTrade* m_trade; // торговая сессия
         CSymbolInfo* m_symbol; // данные валютной пары
@@ -56,8 +56,10 @@ class Optimus : public CObject
     public:
          Optimus(int takeProfit, double multiplier, string symbol);
         ~Optimus();
-        void SetState(states state);
-        void OnTick();
+        void   SetState(states state);
+        void   SetDelta(double delta) { m_delta = delta; };
+        double GetDelta() { return m_delta; };
+        void   OnTick();
 };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -193,7 +195,6 @@ void Optimus::HandleTargetingState()
     COrderInfo* order;
     int total = list.Total();
     double difference; // разница между текущей ценой и ценой ордера
-    double rollback = m_multiplier*m_take_profit*Point; // необходимая величина отката (ширина канала)
     bool hasReachedTheGoal, hasComeBack;
     double newStopLoss;
     string comment;
@@ -216,9 +217,9 @@ void Optimus::HandleTargetingState()
             if (difference > m_max_price_difference) {
                 m_max_price_difference = difference;
             }
-            hasReachedTheGoal = m_max_price_difference > ((m_multiplier + 1) * m_take_profit * Point);
-            hasComeBack = difference < m_max_price_difference - m_take_profit*Point;
-            if (hasReachedTheGoal && hasComeBack && difference >= rollback) {
+            hasReachedTheGoal = m_max_price_difference > (m_multiplier + 1 * m_delta) * m_take_profit * Point;
+            hasComeBack = (difference < m_max_price_difference - m_take_profit * m_delta * Point) && (difference > m_multiplier*m_take_profit * Point);
+            if (hasReachedTheGoal && hasComeBack) {
                 comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
                 if (order.GetType() == OP_BUY) {
                     m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
@@ -331,7 +332,7 @@ void Optimus::ThrowError(string message)
 //|                                                                  |
 //+------------------------------------------------------------------+
 Optimus::Optimus(int takeProfit, double multiplier, string symbol):
-    m_delta(1.05),
+    m_delta(1.0),
     m_spread(0),
     m_deviation(10),
     m_base_size(0.01)
