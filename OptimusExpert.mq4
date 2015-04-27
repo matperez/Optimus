@@ -26,6 +26,7 @@ Optimus* pExpert;
 int OnInit()
 {
     pExpert = new Optimus(TakeProfit, M, _Symbol);
+    pExpert.SetDelta(Delta);
     return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
