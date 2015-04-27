@@ -46,7 +46,7 @@ class Optimus : public CObject
         double m_max_price_difference; // максимальное расстояние между текущей ценой и ценой открытия позиции в состоянии прицеливания
         
         void ThrowError(string message);
-        double GetRevertLotSize(int op, double sellSize, double buySize);
+        double GetRevertLotSize(int op, double sellSize, double buySize, double channelWidth);
         void HandleInitialState();
         void HandleTargetingState();
         void HandleTradingState();
@@ -155,6 +155,7 @@ void Optimus::HandleTradingState()
     COrderInfo* lastSell;
     COrderInfo* lastBuy;
     int total;
+    double channelWidth;
     
     
     if (m_order_queue.GetLastOpen() != NULL) {
@@ -178,10 +179,11 @@ void Optimus::HandleTradingState()
             lastBuy = m_order_queue.GetLastBuy();
         
             if (lastSell && lastBuy && !m_order_queue.HasPendingOrders()) {
+                channelWidth = MathAbs(lastBuy.GetOpenPrice() - lastSell.GetOpenPrice());
                 if (lastSell.GetOpenTime() > lastBuy.GetOpenTime()) {
-                    m_trade.BuyStop(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), lastBuy.GetOpenPrice(), NULL, lastSell.GetTakeProfit(), lastSell.GetStopLoss(), 0, NULL, lastBuy.GetMagic());
+                    m_trade.BuyStop(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), lastBuy.GetOpenPrice(), NULL, lastSell.GetTakeProfit(), lastSell.GetStopLoss(), 0, NULL, lastBuy.GetMagic());
                 } else {
-                    m_trade.SellStop(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), lastSell.GetOpenPrice(), NULL, lastBuy.GetTakeProfit(), lastBuy.GetStopLoss(), 0, NULL, lastSell.GetMagic());
+                    m_trade.SellStop(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), lastSell.GetOpenPrice(), NULL, lastBuy.GetTakeProfit(), lastBuy.GetStopLoss(), 0, NULL, lastSell.GetMagic());
                 }
             }
     }
@@ -196,7 +198,7 @@ void Optimus::HandleTargetingState()
     int total = list.Total();
     double difference; // разница между текущей ценой и ценой ордера
     bool hasReachedTheGoal, hasComeBack;
-    double newStopLoss;
+    double newStopLoss, channelWidth;
     string comment;
     
     if (m_order_queue.GetLastOpen() != NULL) {
@@ -222,10 +224,12 @@ void Optimus::HandleTargetingState()
             if (hasReachedTheGoal && hasComeBack) {
                 comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
                 if (order.GetType() == OP_BUY) {
-                    m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
+                    channelWidth = MathAbs(order.GetOpenPrice() - Bid);
+                    m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
                     newStopLoss = Bid-m_take_profit*Point;
                 } else {
-                    m_trade.Buy(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize()), Ask, NULL, order.GetTakeProfit(), Ask+m_take_profit*Point, comment, order.GetMagic());
+                    channelWidth = MathAbs(order.GetOpenPrice() - Ask);
+                    m_trade.Buy(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), Ask, NULL, order.GetTakeProfit(), Ask+m_take_profit*Point, comment, order.GetMagic());
                     newStopLoss = Ask+m_take_profit*Point;
                 }
                 if (!order.SetStopLoss((float)newStopLoss)) {
@@ -283,7 +287,7 @@ void Optimus::HandleInitialState()
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Optimus::GetRevertLotSize(int op, double sellSize, double buySize)
+double Optimus::GetRevertLotSize(int op, double sellSize, double buySize, double channelWidth)
 {
     double size;
     if (sellSize > buySize) {
