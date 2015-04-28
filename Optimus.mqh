@@ -291,9 +291,10 @@ double Optimus::GetRevertLotSize(int op, double sellSize, double buySize, double
 {
     double size;
     if (sellSize > buySize) {
-        size = (sellSize*(m_multiplier+1)*m_take_profit - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+//        size = (sellSize*(m_multiplier+1)*m_take_profit - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+        size = (sellSize * (channelWidth + m_take_profit) - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
     } else if (sellSize < buySize) {
-        size = (buySize*(m_multiplier+1)*m_take_profit - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+        size = (buySize * (channelWidth + m_take_profit)*m_take_profit - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
     } else {
         ThrowError("Ошибка: Равные объемы проданных и купленных ордеров при расчете размера реверсивной позиции: "+(string)buySize+", "+(string)sellSize);
     }
