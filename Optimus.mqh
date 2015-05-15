@@ -290,14 +290,16 @@ void Optimus::HandleInitialState()
 double Optimus::GetRevertLotSize(int op, double sellSize, double buySize, double channelWidth)
 {
     double size;
+    channelWidth = channelWidth/Point;
     if (sellSize > buySize) {
 //        size = (sellSize*(m_multiplier+1)*m_take_profit - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
         size = (sellSize * (channelWidth + m_take_profit) - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
     } else if (sellSize < buySize) {
-        size = (buySize * (channelWidth + m_take_profit)*m_take_profit - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
+        size = (buySize * (channelWidth + m_take_profit) - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
     } else {
         ThrowError("Ошибка: Равные объемы проданных и купленных ордеров при расчете размера реверсивной позиции: "+(string)buySize+", "+(string)sellSize);
     }
+    Print("Величина канала: ", channelWidth, " ,продажи: ", sellSize, " ,покупки:", buySize, ", tp: ", m_take_profit);
     size = NormalizeDouble(size, 2) + 0.01;
     return size;
 }
