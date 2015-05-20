@@ -37,7 +37,7 @@ class Optimus : public CObject
         double m_base_size; // базовый объем для торговли
         int m_deviation; // допустимое отклонение при выполнении ордера
         int m_spread; // спред (используется для расчетов)
-        double m_delta; // добавочная коэффициент к величине отката при прицеливании
+        int m_delta; // добавка в пунктах к величине отката при прицеливании
         states m_state; // состояние
         CTrade* m_trade; // торговая сессия
         CSymbolInfo* m_symbol; // данные валютной пары
@@ -57,8 +57,8 @@ class Optimus : public CObject
          Optimus(int takeProfit, double multiplier, string symbol);
         ~Optimus();
         void   SetState(states state);
-        void   SetDelta(double delta) { m_delta = delta; };
-        double GetDelta() { return m_delta; };
+        void   SetDelta(int delta) { m_delta = delta; };
+        int GetDelta() { return m_delta; };
         void   OnTick();
 };
 //+------------------------------------------------------------------+
@@ -219,8 +219,8 @@ void Optimus::HandleTargetingState()
             if (difference > m_max_price_difference) {
                 m_max_price_difference = difference;
             }
-            hasReachedTheGoal = m_max_price_difference > (m_multiplier + 1 * m_delta) * m_take_profit * Point;
-            hasComeBack = (difference < m_max_price_difference - m_take_profit * m_delta * Point) && (difference > m_multiplier*m_take_profit * Point);
+            hasReachedTheGoal = m_max_price_difference > ((m_multiplier + 1) * m_take_profit + m_delta) * Point;
+            hasComeBack = (difference < m_max_price_difference - (m_take_profit + m_delta) * Point) && (difference > m_multiplier*m_take_profit * Point);
             if (hasReachedTheGoal && hasComeBack) {
                 comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
                 if (order.GetType() == OP_BUY) {
@@ -339,7 +339,7 @@ void Optimus::ThrowError(string message)
 //|                                                                  |
 //+------------------------------------------------------------------+
 Optimus::Optimus(int takeProfit, double multiplier, string symbol):
-    m_delta(1.0),
+    m_delta(50),
     m_spread(0),
     m_deviation(10),
     m_base_size(0.01)

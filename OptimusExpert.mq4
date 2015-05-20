@@ -16,7 +16,7 @@ input   double  M = 2; // отношение SL/TP
 input   double  Lot = 0.01;
 input   int     Deviation = 10;
 input   int     Spred = 0;
-input   double  Delta = 1.05;
+input   int     Delta = 50;
 
 Optimus* pExpert;
 
