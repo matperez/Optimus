@@ -227,7 +227,9 @@ void Optimus::HandleTargetingState()
             }
             NthPersentOfMaxDailyMoving = 0.2*(High[iHighest(NULL,0,MODE_HIGH,24,0)]-Low[iLowest(NULL,0,MODE_LOW,24,0)]);
             multiplier = (NthPersentOfMaxDailyMoving/Point - m_take_profit)/m_take_profit;
-            if(multiplier < 1) multiplier = 1;
+            if (multiplier < 1) {
+                multiplier = 1;
+            }
             maximumChannelWidth = (multiplier * m_take_profit + m_take_profit) * Point;
             hasReachedTheGoal = m_max_price_difference > maximumChannelWidth;
             hasComeBack = (difference < m_max_price_difference - (m_take_profit + m_delta) * Point) && (difference > multiplier*m_take_profit * Point);
