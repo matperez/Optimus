@@ -90,7 +90,7 @@ void Optimus::OnTick(void)
 void Optimus::CloseAll()
 {
     COrderInfo* order; 
-        
+    Print("Вызвана функция закрытия всех ордеров.");
     for(int i = 0; i < m_order_queue.GetList().Total(); i++) {
         order = m_order_queue.GetList().GetNodeAtIndex(i);
         if (!order.IsPending()) {
@@ -164,6 +164,12 @@ void Optimus::HandleTradingState()
 
     total = m_order_queue.GetList().Total();
     
+    if (total > 0 && m_order_queue.IsSeriesEnded()) {
+        CloseAll();
+        SetState(STATE_CLOSE);
+        return;
+    }
+    
     switch(total) {
         case 0:
             Print("В состоянии торговли не осталось ордеров в очереди.");
@@ -198,7 +204,7 @@ void Optimus::HandleTargetingState()
     int total = list.Total();
     double difference; // разница между текущей ценой и ценой ордера
     bool hasReachedTheGoal, hasComeBack;
-    double newStopLoss, channelWidth;
+    double newStopLoss, channelWidth, revertLotSize, maximumChannelWidth, multiplier, NthPersentOfMaxDailyMoving;
     string comment;
     
     if (m_order_queue.GetLastOpen() != NULL) {
@@ -219,17 +225,25 @@ void Optimus::HandleTargetingState()
             if (difference > m_max_price_difference) {
                 m_max_price_difference = difference;
             }
-            hasReachedTheGoal = m_max_price_difference > ((m_multiplier + 1) * m_take_profit + m_delta) * Point;
-            hasComeBack = (difference < m_max_price_difference - (m_take_profit + m_delta) * Point) && (difference > m_multiplier*m_take_profit * Point);
-            if (hasReachedTheGoal && hasComeBack) {
+            NthPersentOfMaxDailyMoving = 0.2*(High[iHighest(NULL,0,MODE_HIGH,24,0)]-Low[iLowest(NULL,0,MODE_LOW,24,0)]);
+            multiplier = (NthPersentOfMaxDailyMoving/Point - m_take_profit)/m_take_profit;
+            if(multiplier < 1) multiplier = 1;
+            maximumChannelWidth = (multiplier * m_take_profit + m_take_profit) * Point;
+            hasReachedTheGoal = m_max_price_difference > maximumChannelWidth;
+            hasComeBack = (difference < m_max_price_difference - (m_take_profit + m_delta) * Point) && (difference > multiplier*m_take_profit * Point);
+            if (hasReachedTheGoal) { // && hasComeBack) {
+                Print("30 процентов от дневного движения: ", NthPersentOfMaxDailyMoving);
+                Print("Вычисленный множитель: ", multiplier);
                 comment = __FUNCTION__+": страхующий стоп завершающий прицеливание";
                 if (order.GetType() == OP_BUY) {
                     channelWidth = MathAbs(order.GetOpenPrice() - Bid);
-                    m_trade.Sell(GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
+                    revertLotSize = GetRevertLotSize(OP_SELL, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth);
+                    m_trade.Sell(revertLotSize, Bid, NULL, order.GetTakeProfit(), Bid-m_take_profit*Point, comment, order.GetMagic());
                     newStopLoss = Bid-m_take_profit*Point;
                 } else {
                     channelWidth = MathAbs(order.GetOpenPrice() - Ask);
-                    m_trade.Buy(GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth), Ask, NULL, order.GetTakeProfit(), Ask+m_take_profit*Point, comment, order.GetMagic());
+                    revertLotSize = GetRevertLotSize(OP_BUY, m_order_queue.GetSellSize(), m_order_queue.GetBuySize(), channelWidth);
+                    m_trade.Buy(revertLotSize, Ask, NULL, order.GetTakeProfit(), Ask+m_take_profit*Point, comment, order.GetMagic());
                     newStopLoss = Ask+m_take_profit*Point;
                 }
                 if (!order.SetStopLoss((float)newStopLoss)) {
@@ -292,7 +306,6 @@ double Optimus::GetRevertLotSize(int op, double sellSize, double buySize, double
     double size;
     channelWidth = channelWidth/Point;
     if (sellSize > buySize) {
-//        size = (sellSize*(m_multiplier+1)*m_take_profit - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
         size = (sellSize * (channelWidth + m_take_profit) - buySize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
     } else if (sellSize < buySize) {
         size = (buySize * (channelWidth + m_take_profit) - sellSize*m_take_profit + (buySize+sellSize)*m_spread)/(m_take_profit - m_spread);
